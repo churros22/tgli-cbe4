@@ -15,16 +15,28 @@ const Navigation: React.FC = () => {
   const { logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
 
-  // Handle scroll event to change navbar appearance
+  // Handle scroll event to change navbar appearance and visibility
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      const currentScrollY = window.scrollY;
+      
+      // Determine if we should show or hide based on scroll direction
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false); // Scrolling down, hide the navbar
+      } else {
+        setIsVisible(true); // Scrolling up or near top, show the navbar
+      }
+      
+      setScrolled(currentScrollY > 10);
+      setLastScrollY(currentScrollY);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [lastScrollY]);
 
   // Close mobile menu when location changes
   useEffect(() => {
@@ -39,19 +51,20 @@ const Navigation: React.FC = () => {
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-[100] transition-all duration-300 backdrop-blur-md',
-        scrolled ? 'bg-background/90 shadow-sm py-2' : 'bg-transparent py-4'
+        'fixed top-0 left-0 right-0 z-[100] transition-all duration-300 backdrop-blur-sm',
+        scrolled ? 'bg-background/80 shadow-sm py-1' : 'bg-transparent py-2',
+        isVisible ? 'translate-y-0' : '-translate-y-full'
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center">
-          <Logo className="mr-2 scale-75" />
-          <h1 className="text-xl font-medium">{config.appName}</h1>
+          <Logo className="mr-1 scale-70" />
+          <h1 className="text-lg font-medium">{config.appName}</h1>
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-8">
+        <nav className="hidden md:flex items-center space-x-4">
           {config.navigation.map((item) => (
             <a
               key={item.path}
@@ -61,7 +74,7 @@ const Navigation: React.FC = () => {
                 navigate(item.path);
               }}
               className={cn(
-                'nav-link text-base',
+                'nav-link text-sm',
                 location.pathname === item.path ? 'active' : ''
               )}
             >
@@ -74,7 +87,8 @@ const Navigation: React.FC = () => {
           
           <Button
             variant="ghost"
-            className="nav-link text-base"
+            size="sm"
+            className="nav-link text-sm"
             onClick={handleLogout}
           >
             Déconnexion
@@ -84,19 +98,19 @@ const Navigation: React.FC = () => {
         {/* Mobile Menu Button */}
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           className="md:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label={isMobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
         >
-          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </Button>
       </div>
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="md:hidden animate-slide-in-down">
-          <nav className="flex flex-col space-y-4 px-4 py-6 bg-background/95 border-t">
+          <nav className="flex flex-col space-y-3 px-4 py-4 bg-background/95 border-t">
             {config.navigation.map((item) => (
               <a
                 key={item.path}
@@ -107,7 +121,7 @@ const Navigation: React.FC = () => {
                   setIsMobileMenuOpen(false);
                 }}
                 className={cn(
-                  'py-2 px-4 rounded-lg transition-colors',
+                  'py-1 px-3 text-sm rounded-lg transition-colors',
                   location.pathname === item.path
                     ? 'bg-secondary font-medium'
                     : 'hover:bg-secondary/50'
@@ -116,13 +130,14 @@ const Navigation: React.FC = () => {
                 {item.name}
               </a>
             ))}
-            <div className="py-2 px-4 flex items-center justify-between">
+            <div className="py-1 px-3 flex items-center justify-between text-sm">
               <span>Thème</span>
               <ThemeToggle />
             </div>
             <Button
               variant="ghost"
-              className="justify-start py-2 px-4 h-auto hover:bg-secondary/50"
+              size="sm"
+              className="justify-start py-1 px-3 h-auto text-sm hover:bg-secondary/50"
               onClick={handleLogout}
             >
               Déconnexion
