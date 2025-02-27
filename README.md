@@ -1,69 +1,137 @@
-# Welcome to your Lovable project
+# CBE#4-Process Validation Application
 
-## Project info
+A modern, password-protected web application for managing process validation project data, documents, diagrams, and spreadsheets.
 
-**URL**: https://lovable.dev/projects/94c0f1a4-29bb-4af0-a37c-2ee1c406135e
+## Project Overview
 
-## How can I edit this code?
+This application provides a central hub for managing process validation resources with the following features:
 
-There are several ways of editing your application.
+- Password-protected access
+- Interactive dashboard with project progress visualization
+- Task management interface with Google Sheets integration
+- Organized access to diagrams, documents, and spreadsheets
+- Modern, responsive UI with smooth animations
 
-**Use Lovable**
+## Deployment Instructions for GitHub Pages
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/94c0f1a4-29bb-4af0-a37c-2ee1c406135e) and start prompting.
+### 1. Clone the Repository
 
-Changes made via Lovable will be committed automatically to this repo.
+```bash
+git clone https://github.com/YourUsername/tgli-cbe4.git
+cd tgli-cbe4
+```
 
-**Use your preferred IDE**
+### 2. Configure the Application
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Open `src/config.js` and update the configuration values:
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Verify the password is set correctly (default: "cbe425")
+- Add your Google Sheets API key
+- Update Sheet IDs for tasks, documents, and tableaux 
+- Customize any other settings as needed
 
-Follow these steps:
+### 3. Install Dependencies and Run Locally
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Visit `http://localhost:8080` to test the application locally.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 4. Build for Production
 
-**Use GitHub Codespaces**
+```bash
+npm run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 5. Deploy to GitHub Pages
 
-## What technologies are used for this project?
+The easiest way to deploy is to use the gh-pages package:
 
-This project is built with .
+```bash
+npm install --save-dev gh-pages
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Add these scripts to your package.json:
 
-## How can I deploy this project?
+```json
+"scripts": {
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d dist"
+}
+```
 
-Simply open [Lovable](https://lovable.dev/projects/94c0f1a4-29bb-4af0-a37c-2ee1c406135e) and click on Share -> Publish.
+Then deploy:
 
-## I want to use a custom domain - is that possible?
+```bash
+npm run deploy
+```
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+Your site will be available at `https://YourUsername.github.io/tgli-cbe4`
+
+## Configuration Guide
+
+### Password Management
+
+The login password can be changed in `src/config.js`:
+
+```javascript
+auth: {
+  password: "cbe425", // Change this to your desired password
+}
+```
+
+### Google Sheets Integration
+
+To connect your Google Sheets:
+
+1. Create a Google Cloud Platform project
+2. Enable the Google Sheets API
+3. Create API credentials
+4. Add your API key to `src/config.js`:
+
+```javascript
+googleSheets: {
+  apiKey: "YOUR_GOOGLE_SHEETS_API_KEY",
+  tasksSheet: {
+    sheetId: "YOUR_TASKS_SHEET_ID",
+    range: "Tasks!A1:Z1000",
+  },
+  // Other sheet configurations...
+}
+```
+
+### Adding Diagrams
+
+To add diagrams:
+
+1. Create HTML files for your diagrams
+2. Add them to the `public/diagrams` folder
+3. Update the diagram list in `src/config.js`:
+
+```javascript
+diagrammes: {
+  categories: [
+    {
+      name: "Category Name",
+      items: [
+        { title: "Diagram Title", fileName: "your-diagram.html" },
+        // Add more diagrams...
+      ]
+    }
+  ]
+}
+```
+
+## Customization
+
+The application is designed to be easily customizable:
+
+- Colors and styles can be adjusted in `tailwind.config.ts` and `src/index.css`
+- Component layouts are modular and can be modified in their respective files
+- All data configurations are centralized in `src/config.js`
+
+## Support
+
+For issues or questions, please create an issue in the GitHub repository.
