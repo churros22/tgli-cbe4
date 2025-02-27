@@ -39,8 +39,8 @@ const Navigation: React.FC = () => {
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 backdrop-blur-md',
-        scrolled ? 'bg-background/80 shadow-sm py-2' : 'bg-transparent py-4'
+        'fixed top-0 left-0 right-0 z-[100] transition-all duration-300 backdrop-blur-md',
+        scrolled ? 'bg-background/90 shadow-sm py-2' : 'bg-transparent py-4'
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">

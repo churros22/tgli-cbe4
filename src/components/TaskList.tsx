@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,7 +30,11 @@ interface Task {
   parentId?: string;
 }
 
-const TaskList: React.FC = () => {
+interface TaskListProps {
+  statusFilter: string | null;
+}
+
+const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
   const [tasks, setTasks] = useState<Task[]>([
     { 
       id: '1', 
@@ -82,13 +86,25 @@ const TaskList: React.FC = () => {
     },
   ]);
   
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
   const [newTask, setNewTask] = useState('');
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
+  const [date, setDate] = useState<Date | undefined>(undefined);
   
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (statusFilter === null) {
+      setFilteredTasks(tasks);
+    } else if (statusFilter === 'all') {
+      setFilteredTasks(tasks);
+    } else {
+      setFilteredTasks(tasks.filter(task => task.status === statusFilter));
+    }
+  }, [statusFilter, tasks]);
 
   const handleAddTaskClick = () => {
     const newTaskTemplate: Task = {
@@ -105,6 +121,7 @@ const TaskList: React.FC = () => {
     };
     
     setCurrentTask(newTaskTemplate);
+    setDate(undefined);
     setIsTaskDialogOpen(true);
   };
 
@@ -182,7 +199,24 @@ const TaskList: React.FC = () => {
     const task = tasks.find(t => t.id === id);
     if (task) {
       setCurrentTask({ ...task });
+      setDate(task.dueDate ? new Date(task.dueDate) : undefined);
       setIsTaskDialogOpen(true);
+    }
+  };
+
+  const handleDueDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate);
+    
+    if (selectedDate && currentTask) {
+      setCurrentTask({
+        ...currentTask,
+        dueDate: format(selectedDate, 'yyyy-MM-dd')
+      });
+    } else if (currentTask) {
+      // If date is cleared
+      const updatedTask = { ...currentTask };
+      delete updatedTask.dueDate;
+      setCurrentTask(updatedTask);
     }
   };
 
@@ -222,12 +256,16 @@ const TaskList: React.FC = () => {
       </div>
       
       <div className="space-y-1">
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-muted-foreground">{config.tasks.labels.noTasks}</p>
+            <p className="text-muted-foreground">
+              {statusFilter 
+                ? `Aucune tâche avec le filtre actuel.` 
+                : config.tasks.labels.noTasks}
+            </p>
           </div>
         ) : (
-          tasks.map((task) => (
+          filteredTasks.map((task) => (
             <div 
               key={task.id}
               className={cn(
@@ -326,6 +364,9 @@ const TaskList: React.FC = () => {
             <DialogTitle>
               {currentTask?.id ? config.tasks.labels.edit : config.tasks.labels.add}
             </DialogTitle>
+            <DialogDescription>
+              Complétez les informations de la tâche ci-dessous.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
@@ -364,8 +405,8 @@ const TaskList: React.FC = () => {
                       variant="outline"
                       className="w-full justify-start text-left font-normal"
                     >
-                      {currentTask?.dueDate ? (
-                        formatDate(currentTask.dueDate)
+                      {date ? (
+                        format(date, 'dd MMMM yyyy', { locale: fr })
                       ) : (
                         <span className="text-muted-foreground">Sélectionner une date</span>
                       )}
@@ -375,9 +416,9 @@ const TaskList: React.FC = () => {
                   <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
-                      selected={currentTask?.dueDate ? new Date(currentTask.dueDate) : undefined}
-                      onSelect={(date) => setCurrentTask(prev => prev ? {...prev, dueDate: date ? format(date, 'yyyy-MM-dd') : undefined} : null)}
-                      disabled={(date) => date < new Date(currentTask?.startDate || '')}
+                      selected={date}
+                      onSelect={handleDueDateSelect}
+                      disabled={(date) => currentTask?.startDate ? date < new Date(currentTask.startDate) : false}
                       initialFocus
                     />
                   </PopoverContent>
