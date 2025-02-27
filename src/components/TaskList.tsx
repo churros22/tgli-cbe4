@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { PlusCircle, Trash2, Edit, Check, X, Calendar, User, ListTodo } from 'lucide-react';
+import { PlusCircle, Trash2, Edit, Check, X, Calendar, User, ListTodo, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -91,8 +91,11 @@ const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [currentTask, setCurrentTask] = useState<Task | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
   
   const { toast } = useToast();
 
@@ -187,12 +190,57 @@ const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
     );
   };
 
-  const handleDelete = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  const confirmDelete = (task: Task) => {
+    setTaskToDelete(task);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = () => {
+    if (!taskToDelete) return;
     
+    // Save the task before deletion (for undo functionality)
+    setLastDeletedTask(taskToDelete);
+    
+    // Remove the task
+    setTasks(tasks.filter(task => task.id !== taskToDelete.id));
+    
+    // Close the dialog
+    setIsDeleteDialogOpen(false);
+    
+    // Show toast with undo option
     toast({
-      title: config.tasks.messages.deleteSuccess,
+      title: "Tâche supprimée",
+      description: taskToDelete.title,
+      action: (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleUndoDelete}
+          className="gap-1"
+        >
+          <span>Annuler</span>
+        </Button>
+      ),
     });
+    
+    // Clear the task to delete
+    setTaskToDelete(null);
+  };
+
+  const handleUndoDelete = () => {
+    if (lastDeletedTask) {
+      // Add the task back to the list
+      setTasks([...tasks, lastDeletedTask]);
+      
+      // Show confirmation
+      toast({
+        title: "Suppression annulée",
+        description: "La tâche a été restaurée",
+      });
+      
+      // Clear the last deleted task
+      setLastDeletedTask(null);
+    }
   };
 
   const handleEdit = (id: string) => {
@@ -347,7 +395,7 @@ const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={() => handleDelete(task.id)}
+                  onClick={() => confirmDelete(task)}
                 >
                   <Trash2 size={16} />
                 </Button>
@@ -551,6 +599,55 @@ const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
             </Button>
             <Button onClick={handleSaveTask}>
               {config.tasks.labels.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirmer la suppression
+            </DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action ne peut pas être annulée directement.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {taskToDelete && (
+            <div className="py-4">
+              <div className="p-3 rounded-md border bg-muted/50">
+                <h4 className="font-medium">{taskToDelete.title}</h4>
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-muted-foreground">
+                  {taskToDelete.category && (
+                    <span>{taskToDelete.category}</span>
+                  )}
+                  {taskToDelete.assignee && (
+                    <span className="flex items-center gap-1">
+                      <User size={12} />
+                      {taskToDelete.assignee}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Annuler
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+            >
+              Supprimer
             </Button>
           </DialogFooter>
         </DialogContent>
