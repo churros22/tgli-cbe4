@@ -26,7 +26,7 @@ const Diagrammes: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <h1 className="text-3xl font-medium">Diagrammes</h1>
             <p className="text-muted-foreground mt-2">
-              Access all process diagrams and visual resources
+              Accédez à tous les diagrammes de processus et ressources visuelles
             </p>
           </div>
           

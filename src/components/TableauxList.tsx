@@ -24,20 +24,20 @@ interface Category {
 
 const mockCategories: Category[] = [
   {
-    name: "Process Data",
+    name: "Données de processus",
     tableaux: [
       {
         id: "1",
-        title: "Process Parameters",
-        category: "Process Data",
+        title: "Paramètres du processus",
+        category: "Données de processus",
         url: "https://docs.google.com/spreadsheets/",
         type: "sheet",
         date: "2023-12-10"
       },
       {
         id: "2",
-        title: "Equipment Calibration",
-        category: "Process Data",
+        title: "Étalonnage de l'équipement",
+        category: "Données de processus",
         url: "https://docs.google.com/spreadsheets/",
         type: "sheet",
         date: "2023-12-05"
@@ -45,20 +45,20 @@ const mockCategories: Category[] = [
     ]
   },
   {
-    name: "Validation Results",
+    name: "Résultats de validation",
     tableaux: [
       {
         id: "3",
-        title: "Test Results Summary",
-        category: "Validation Results",
+        title: "Résumé des résultats de test",
+        category: "Résultats de validation",
         url: "https://docs.google.com/spreadsheets/",
         type: "sheet",
         date: "2023-12-15"
       },
       {
         id: "4",
-        title: "Statistical Analysis",
-        category: "Validation Results",
+        title: "Analyse statistique",
+        category: "Résultats de validation",
         url: "https://example.com/statistics.pdf",
         type: "pdf",
         date: "2023-12-18"
@@ -66,20 +66,20 @@ const mockCategories: Category[] = [
     ]
   },
   {
-    name: "Project Management",
+    name: "Gestion de projet",
     tableaux: [
       {
         id: "5",
-        title: "Project Timeline",
-        category: "Project Management",
+        title: "Calendrier du projet",
+        category: "Gestion de projet",
         url: "https://docs.google.com/spreadsheets/",
         type: "sheet",
         date: "2023-11-20"
       },
       {
         id: "6",
-        title: "Resource Allocation",
-        category: "Project Management",
+        title: "Allocation des ressources",
+        category: "Gestion de projet",
         url: "https://docs.google.com/spreadsheets/",
         type: "sheet",
         date: "2023-11-25"
@@ -114,13 +114,19 @@ const TableauxList: React.FC = () => {
     }
   };
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
+  };
+
   return (
     <div className="space-y-6">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
         <Input
           type="text"
-          placeholder="Search spreadsheets and tables..."
+          placeholder="Rechercher des feuilles de calcul et tableaux..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10 py-2 rounded-xl"
@@ -129,7 +135,7 @@ const TableauxList: React.FC = () => {
 
       {filteredCategories.length === 0 ? (
         <div className="py-8 text-center">
-          <p className="text-muted-foreground">No tableaux found matching your search.</p>
+          <p className="text-muted-foreground">Aucun tableau trouvé correspondant à votre recherche.</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -160,7 +166,7 @@ const TableauxList: React.FC = () => {
                           </h4>
                           {tableau.date && (
                             <p className="text-sm text-muted-foreground mt-1">
-                              Updated: {new Date(tableau.date).toLocaleDateString()}
+                              Mis à jour: {formatDate(tableau.date)}
                             </p>
                           )}
                         </div>

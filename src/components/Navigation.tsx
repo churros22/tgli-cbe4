@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import config from '@/config';
 import Logo from '@/components/Logo';
 import { useAuth } from '@/context/AuthContext';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
@@ -68,12 +69,15 @@ const Navigation: React.FC = () => {
             </a>
           ))}
           
+          {/* Theme Toggle */}
+          <ThemeToggle />
+          
           <Button
             variant="ghost"
             className="nav-link text-base"
             onClick={handleLogout}
           >
-            Logout
+            Déconnexion
           </Button>
         </nav>
 
@@ -83,7 +87,7 @@ const Navigation: React.FC = () => {
           size="icon"
           className="md:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-label={isMobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </Button>
@@ -112,12 +116,16 @@ const Navigation: React.FC = () => {
                 {item.name}
               </a>
             ))}
+            <div className="py-2 px-4 flex items-center justify-between">
+              <span>Thème</span>
+              <ThemeToggle />
+            </div>
             <Button
               variant="ghost"
               className="justify-start py-2 px-4 h-auto hover:bg-secondary/50"
               onClick={handleLogout}
             >
-              Logout
+              Déconnexion
             </Button>
           </nav>
         </div>

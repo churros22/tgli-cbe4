@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import Navigation from '@/components/Navigation';
 import ProgressChart from '@/components/ProgressChart';
 import TaskList from '@/components/TaskList';
+import DashboardStats from '@/components/DashboardStats';
 import config from '@/config';
 
 const Dashboard: React.FC = () => {
@@ -28,20 +29,25 @@ const Dashboard: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <h1 className="text-3xl font-medium">{config.appName}</h1>
             <p className="text-muted-foreground mt-2">
-              Welcome to your project management dashboard
+              {config.dashboard.welcome}
             </p>
           </div>
+          
+          {/* Dashboard Statistics */}
+          <section className="mb-8 animate-slide-in-up" style={{ animationDelay: '50ms' }}>
+            <DashboardStats />
+          </section>
           
           {/* Progress Section */}
           <section className="mb-12 animate-slide-in-up" style={{ animationDelay: '100ms' }}>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-              <h2 className="text-2xl font-medium">Project Progress</h2>
+              <h2 className="text-2xl font-medium">{config.dashboard.progressSection}</h2>
               <div className="text-sm px-3 py-1 rounded-full bg-secondary text-muted-foreground">
-                Overall Progress: 95%
+                {config.dashboard.overallProgress}: 95%
               </div>
             </div>
             
-            <div className="bg-white rounded-xl p-4 shadow-sm border">
+            <div className="bg-card rounded-xl p-4 shadow-sm border">
               <ProgressChart />
             </div>
           </section>
@@ -49,13 +55,13 @@ const Dashboard: React.FC = () => {
           {/* Tasks Section */}
           <section className="animate-slide-in-up" style={{ animationDelay: '200ms' }}>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-              <h2 className="text-2xl font-medium">Tasks</h2>
+              <h2 className="text-2xl font-medium">{config.dashboard.tasksSection}</h2>
               <div className="text-sm px-3 py-1 rounded-full bg-secondary text-muted-foreground">
-                4 Tasks Remaining
+                {config.dashboard.tasksRemaining}: 4
               </div>
             </div>
             
-            <div className="bg-white rounded-xl p-4 shadow-sm border">
+            <div className="bg-card rounded-xl p-4 shadow-sm border">
               <TaskList />
             </div>
           </section>

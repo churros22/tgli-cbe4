@@ -26,7 +26,7 @@ const Documents: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <h1 className="text-3xl font-medium">Documents</h1>
             <p className="text-muted-foreground mt-2">
-              Access all project documentation and reports
+              Accédez à toute la documentation et aux rapports du projet
             </p>
           </div>
           

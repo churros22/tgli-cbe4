@@ -2,97 +2,163 @@
 /**
  * CBE#4-Process Validation Application Configuration
  * 
- * This file contains all configurable parameters for the application.
- * Edit these values to customize the application according to your needs.
+ * Ce fichier contient tous les paramètres configurables pour l'application.
+ * Modifiez ces valeurs pour personnaliser l'application selon vos besoins.
  */
 
 const config = {
-  // Authentication
+  // Authentification
   auth: {
-    password: "cbe425", // The password required to access the application
+    password: "cbe425", // Le mot de passe requis pour accéder à l'application
   },
   
   // Application
-  appName: "CBE#4-Process Validation",
+  appName: "CBE#4-Validation des Processus",
   
-  // Google Sheets API Configuration
+  // Configuration de l'API Google Sheets
   googleSheets: {
-    // Replace these with your actual API key and Sheet IDs
-    apiKey: "YOUR_GOOGLE_SHEETS_API_KEY", // Google Sheets API key
+    // Remplacez ces valeurs par votre clé API et ID de feuilles réels
+    apiKey: "YOUR_GOOGLE_SHEETS_API_KEY", // Clé API Google Sheets
     
-    // Tasks Sheet (for Dashboard)
+    // Feuille des tâches (pour le tableau de bord)
     tasksSheet: {
-      sheetId: "YOUR_TASKS_SHEET_ID", // ID of the Google Sheet for tasks
-      range: "Tasks!A1:Z1000", // Range to fetch (adjust as needed)
+      sheetId: "YOUR_TASKS_SHEET_ID", // ID de la feuille Google pour les tâches
+      range: "Tasks!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
     },
     
-    // Documents Sheet (for Documents page)
+    // Feuille des documents (pour la page Documents)
     documentsSheet: {
-      sheetId: "YOUR_DOCUMENTS_SHEET_ID", // ID of the Google Sheet for documents
-      range: "Documents!A1:Z1000", // Range to fetch (adjust as needed)
+      sheetId: "YOUR_DOCUMENTS_SHEET_ID", // ID de la feuille Google pour les documents
+      range: "Documents!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
     },
     
-    // Tableaux Sheet (for Tableaux page)
+    // Feuille des tableaux (pour la page Tableaux)
     tableauxSheet: {
-      sheetId: "YOUR_TABLEAUX_SHEET_ID", // ID of the Google Sheet for tableaux
-      range: "Tableaux!A1:Z1000", // Range to fetch (adjust as needed)
+      sheetId: "YOUR_TABLEAUX_SHEET_ID", // ID de la feuille Google pour les tableaux
+      range: "Tableaux!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
     },
   },
   
   // Navigation
   navigation: [
-    { name: "Dashboard", path: "/dashboard" },
+    { name: "Tableau de bord", path: "/dashboard" },
     { name: "Diagrammes", path: "/diagrammes" },
     { name: "Documents", path: "/documents" },
     { name: "Tableaux", path: "/tableaux" },
   ],
   
-  // Project Progress (for Dashboard chart)
+  // Progrès du projet (pour le graphique du tableau de bord)
   projectProgress: {
-    // Sample data for the progress chart
-    // Replace with actual data or integration
+    // Données d'exemple pour le graphique de progression
+    // Remplacez par des données réelles ou une intégration
     data: [
       { name: "Jan", progress: 20 },
-      { name: "Feb", progress: 35 },
+      { name: "Fév", progress: 35 },
       { name: "Mar", progress: 50 },
-      { name: "Apr", progress: 65 },
-      { name: "May", progress: 78 },
-      { name: "Jun", progress: 90 },
-      { name: "Jul", progress: 95 },
+      { name: "Avr", progress: 65 },
+      { name: "Mai", progress: 78 },
+      { name: "Juin", progress: 90 },
+      { name: "Juil", progress: 95 },
     ],
-    // Chart colors
+    // Couleurs du graphique
     colors: {
       primary: "#1a1a1a",
       secondary: "#f0f0f0",
     },
   },
 
-  // Sample Diagrammes data (for Diagrammes page)
-  // These are links to local HTML files
+  // Données des diagrammes (pour la page Diagrammes)
+  // Ce sont des liens vers des fichiers HTML locaux
   diagrammes: {
     categories: [
       {
-        name: "Process Maps",
+        name: "Schémas de processus",
         items: [
-          { title: "Main Process Flow", fileName: "process-flow.html" },
-          { title: "Validation Process", fileName: "validation-process.html" },
-          { title: "Quality Control", fileName: "quality-control.html" },
+          { title: "Flux de processus principal", fileName: "process-flow.html" },
+          { title: "Processus de validation", fileName: "validation-process.html" },
+          { title: "Contrôle qualité", fileName: "quality-control.html" },
         ]
       },
       {
-        name: "Organizational",
+        name: "Organisation",
         items: [
-          { title: "Team Structure", fileName: "team-structure.html" },
-          { title: "Responsibility Matrix", fileName: "responsibility-matrix.html" },
+          { title: "Structure d'équipe", fileName: "team-structure.html" },
+          { title: "Matrice de responsabilité", fileName: "responsibility-matrix.html" },
         ]
       }
     ]
   },
   
-  // GitHub Pages deployment info
+  // Configuration des tâches
+  tasks: {
+    // États des tâches disponibles
+    statuses: [
+      { id: "pending", label: "En attente" },
+      { id: "in_progress", label: "En cours" },
+      { id: "completed", label: "Complété" },
+    ],
+    
+    // Catégories par défaut des tâches
+    defaultCategories: [
+      "Documentation",
+      "Préparation",
+      "Planification",
+      "Gestion des risques",
+      "Test",
+      "Validation",
+      "Revue",
+    ],
+    
+    // Messages pour les tâches
+    messages: {
+      addSuccess: "Tâche ajoutée avec succès",
+      updateSuccess: "Tâche mise à jour avec succès",
+      deleteSuccess: "Tâche supprimée",
+      addError: "Erreur lors de l'ajout de la tâche",
+      updateError: "Erreur lors de la mise à jour de la tâche",
+      deleteError: "Erreur lors de la suppression de la tâche",
+    },
+    
+    // Étiquettes pour le formulaire de tâche
+    labels: {
+      title: "Nom de la tâche",
+      startDate: "Date de début",
+      dueDate: "Date limite",
+      assignee: "Responsable de la tâche",
+      progress: "Progression",
+      status: "État",
+      category: "Catégorie",
+      parentTask: "Tâche parent",
+      add: "Ajouter une tâche",
+      edit: "Modifier la tâche",
+      delete: "Supprimer",
+      save: "Enregistrer",
+      cancel: "Annuler",
+      noTasks: "Aucune tâche pour le moment. Ajoutez votre première tâche ci-dessus.",
+    },
+  },
+  
+  // Étiquettes du tableau de bord
+  dashboard: {
+    title: "Tableau de bord",
+    welcome: "Bienvenue sur votre tableau de bord de gestion de projet",
+    progressSection: "Progression du projet",
+    tasksSection: "Tâches",
+    overallProgress: "Progression globale",
+    tasksRemaining: "Tâches restantes",
+    statistics: {
+      totalTasks: "Total des tâches",
+      completedTasks: "Tâches complétées",
+      remainingTasks: "Tâches restantes",
+      overdueTasks: "Tâches en retard",
+      nextDeadline: "Prochaine échéance",
+    },
+  },
+  
+  // Information de déploiement GitHub Pages
   deployment: {
-    repoName: "tgli-cbe4", // The name of the GitHub repo
-    branch: "gh-pages", // The branch to deploy to
+    repoName: "tgli-cbe4", // Le nom du dépôt GitHub
+    branch: "gh-pages", // La branche à déployer
   },
 };
 

@@ -26,7 +26,7 @@ const Tableaux: React.FC = () => {
           <div className="mb-8 animate-fade-in">
             <h1 className="text-3xl font-medium">Tableaux</h1>
             <p className="text-muted-foreground mt-2">
-              Access all project spreadsheets and tables
+              Accédez à toutes les feuilles de calcul et tableaux du projet
             </p>
           </div>
           
