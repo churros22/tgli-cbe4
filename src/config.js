@@ -84,33 +84,35 @@ const config = {
       {
         name: "MindMaps ASQ CQE Chapitre 3",
         items: [
-          { title: "ADLA Yacine", fileName: "../public/diagrams/yacine_3.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/ahmed_3.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/damou_3.html" },
+          { title: "ADLA Yacine 3", fileName: "../public/diagrams/yacine_3.html" },
+          { title: "CHEBBAH Ahmed 3", fileName: "../public/diagrams/ahmed_3.html" },
+          { title: "DAMOU Soheib 3", fileName: "../public/diagrams/damou_3.html" },
         ]
       },
       {
         name: "MindMaps ASQ CQE Chapitre 4",
         items: [
-          { title: "ADLA Yacine", fileName: "../public/diagrams/yacine_4.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/ahmed_4.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/damou_4.html" },
+          { title: "ADLA Yacine 4", fileName: "../public/diagrams/yacine_4.html" },
+          { title: "CHEBBAH Ahmed 4", fileName: "../public/diagrams/ahmed_4.html" },
+          { title: "DAMOU Soheib 4", fileName: "../public/diagrams/damou_4.html" },
         ]
       },
       {
         name: "MindMaps ASQ CQE Chapitre 5",
         items: [
-          { title: "ADLA Yacine", fileName: "../public/diagrams/yacine_5.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/ahmed_5.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/damou_5.html" },
+          { title: "ADLA Yacine 5", fileName: "../public/diagrams/yacine_5.html" },
+          { title: "CHEBBAH Ahmed 5", fileName: "../public/diagrams/ahmed_5.html" },
+          { title: "DAMOU Soheib 5", fileName: "../public/diagrams/damou_5.html" },
         ]
       },
       {
         name: "MindMaps ASQ CQE Chapitre 6",
         items: [
-          { title: "ADLA Yacine", fileName: "../public/diagrams/yacine_6.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/ahmed_7.html" },
-          { title: "CHEBBAH Ahmed", fileName: "../public/diagrams/damou_6.html" },
+          { title: "ADLA Yacine 6", fileName: "../public/diagrams/yacine_6.html" },
+          { title: "CHEBBAH Ahmed 6", fileName: "../public/diagrams/ahmed_7.html" },
+          { title: "DAMOU Soheib 6", fileName: "../public/diagrams/damou_6.html" },
+          { title: "HADDJAME Farid Acceptance Sampling", fileName: "../public/diagrams/hadjam_acceptance_sampling.html" },
+          { title: "HADDJAME Farid SPC", fileName: "../public/diagrams/hadjam_spc.html" },
         ]
       },
       {
