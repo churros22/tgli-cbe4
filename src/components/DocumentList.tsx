@@ -109,7 +109,7 @@ const DocumentList: React.FC = () => {
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.documentsSheet.spreadsheetId;
-        const range = 'Documents!A1:H100'; // Adjust based on your sheet structure
+        const range = 'Documents!A2:H100'; // Adjust based on your sheet structure
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);

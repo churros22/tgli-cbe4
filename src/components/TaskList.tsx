@@ -15,7 +15,6 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import config from '@/config';
 
-// Mock task data until Google Sheets integration is complete
 interface Task {
   id: string;
   title: string;
@@ -29,590 +28,559 @@ interface Task {
   parentId?: string;
 }
 
-interface TaskListProps {
-  statusFilter: string | null;
-}
-
-const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { 
-      id: '1', 
-      title: 'Réviser le protocole de validation', 
-      completed: true,
-      startDate: '2023-12-13',
-      dueDate: '2023-12-20', 
-      assignee: 'Marc Dupont',
-      progress: 100,
-      status: 'completed',
-      category: 'Documentation',
-      parentId: undefined
-    },
-    { 
-      id: '2', 
-      title: 'Préparer l\'équipement de test', 
-      completed: false,
-      startDate: '2023-12-15',
-      dueDate: '2023-12-28', 
-      assignee: 'Lucie Martin',
-      progress: 40,
-      status: 'in_progress',
-      category: 'Préparation',
-      parentId: undefined
-    },
-    { 
-      id: '3', 
-      title: 'Planifier réunion d\'équipe', 
-      completed: false,
-      startDate: '2023-12-20',
-      dueDate: '2024-01-05',
-      assignee: 'Thomas Bernard',
-      progress: 10,
-      status: 'pending',
-      category: 'Planification',
-      parentId: undefined
-    },
-    { 
-      id: '4', 
-      title: 'Mettre à jour l\'évaluation des risques', 
-      completed: false,
-      startDate: '2023-12-22',
-      dueDate: '2024-01-10',
-      assignee: 'Sophie Moreau',
-      progress: 0,
-      status: 'pending',
-      category: 'Gestion des risques',
-      parentId: undefined
-    },
-  ]);
-  
-  const [filteredTasks, setFilteredTasks] = useState<Task[]>(tasks);
-  const [newTask, setNewTask] = useState('');
-  const [editingTask, setEditingTask] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-  const [currentTask, setCurrentTask] = useState<Task | null>(null);
-  const [date, setDate] = useState<Date | undefined>(undefined);
-  const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
-  
+const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
   const { toast } = useToast();
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [isStartDateOpen, setIsStartDateOpen] = useState(false);
+  const [isDueDateOpen, setIsDueDateOpen] = useState(false);
 
   useEffect(() => {
-    if (statusFilter === null) {
-      setFilteredTasks(tasks);
-    } else if (statusFilter === 'all') {
-      setFilteredTasks(tasks);
-    } else {
-      setFilteredTasks(tasks.filter(task => task.status === statusFilter));
-    }
-  }, [statusFilter, tasks]);
+    const fetchTasksFromGoogleSheets = async () => {
+      try {
+        setLoading(true);
+        // Construct the Google Sheets API URL with your API key and spreadsheet ID
+        const apiKey = config.googleSheets.apiKey;
+        const sheetId = config.googleSheets.tasksSheet.spreadsheetId;
+        const range = 'Tasks!A2:J100'; // Adjusted to include category and parentId
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
-  const handleAddTaskClick = () => {
-    const newTaskTemplate: Task = {
-      id: '',
-      title: '',
-      completed: false,
-      startDate: format(new Date(), 'yyyy-MM-dd'),
-      dueDate: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-      assignee: '',
-      progress: 0,
-      status: 'pending',
-      category: 'Nouvelle tâche',
-      parentId: undefined
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch tasks from Google Sheets');
+        }
+        
+        const data = await response.json();
+        
+        // Process the data from Google Sheets
+        if (data && data.values && data.values.length > 0) {
+          // Transform the raw data into Task objects
+          const fetchedTasks: Task[] = data.values.map((row: string[]) => ({
+            id: row[0] || String(Math.random()),
+            title: row[1] || 'Untitled Task',
+            completed: row[2] === 'true' || row[2] === 'completed',
+            startDate: row[3] || format(new Date(), 'yyyy-MM-dd'),
+            dueDate: row[4] || undefined,
+            assignee: row[5] || undefined,
+            progress: parseInt(row[6] || '0', 10),
+            status: row[7] || 'not_started',
+            category: row[8] || undefined,
+            parentId: row[9] || undefined
+          }));
+          
+          setTasks(fetchedTasks);
+        } else {
+          // If no data is returned, set an empty array
+          setTasks([]);
+        }
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        setError('Failed to load tasks. Please try again later.');
+        // Fallback to empty tasks array
+        setTasks([]);
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    setCurrentTask(newTaskTemplate);
-    setDate(undefined);
-    setIsTaskDialogOpen(true);
-  };
+
+    fetchTasksFromGoogleSheets();
+  }, []);
+
+  // Filter tasks based on the selected filter
+  const filteredTasks = tasks.filter(task => {
+    if (!filter) return true;
+    if (filter === 'all') return true;
+    if (filter === 'completed') return task.completed || task.status === 'completed';
+    if (filter === 'in_progress') return task.status === 'in_progress';
+    if (filter === 'pending') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
+      return task.status === 'pending' || (taskDueDate && taskDueDate < today && !task.completed);
+    }
+    return true;
+  });
 
   const handleSaveTask = () => {
-    if (!currentTask) return;
-    
-    // Make sure the task has a title
-    if (!currentTask.title.trim()) {
+    if (!taskToEdit?.title) {
       toast({
-        title: "Erreur",
-        description: "Le nom de la tâche est requis.",
         variant: "destructive",
+        title: config.tasks.messages.titleRequired,
       });
       return;
     }
-    
-    if (currentTask.id) {
+
+    if (isEditDialogOpen) {
       // Update existing task
-      setTasks(
-        tasks.map(task => 
-          task.id === currentTask.id ? { ...currentTask } : task
-        )
+      const updatedTasks = tasks.map(task => 
+        task.id === taskToEdit.id ? taskToEdit : task
       );
-      
+      setTasks(updatedTasks);
       toast({
-        title: config.tasks.messages.updateSuccess,
-        description: currentTask.title,
+        title: config.tasks.messages.taskUpdated,
+        description: taskToEdit.title,
       });
+      setIsEditDialogOpen(false);
     } else {
       // Add new task
-      const newTaskWithId = {
-        ...currentTask,
-        id: Date.now().toString(),
+      const newTask: Task = {
+        id: String(Date.now()),
+        title: taskToEdit.title,
+        completed: false,
+        startDate: taskToEdit.startDate || format(new Date(), 'yyyy-MM-dd'),
+        dueDate: taskToEdit.dueDate,
+        assignee: taskToEdit.assignee,
+        progress: taskToEdit.progress || 0,
+        status: taskToEdit.status || 'not_started',
+        category: taskToEdit.category,
       };
       
-      setTasks([...tasks, newTaskWithId]);
-      
+      setTasks([...tasks, newTask]);
       toast({
-        title: config.tasks.messages.addSuccess,
-        description: newTaskWithId.title,
+        title: config.tasks.messages.taskAdded,
+        description: newTask.title,
       });
+      setIsAddDialogOpen(false);
     }
     
-    setIsTaskDialogOpen(false);
-    setCurrentTask(null);
-    setNewTask('');
-  };
-
-  const handleToggleComplete = (id: string) => {
-    setTasks(
-      tasks.map(task => {
-        if (task.id === id) {
-          const completed = !task.completed;
-          return { 
-            ...task, 
-            completed,
-            status: completed ? 'completed' : 'in_progress',
-            progress: completed ? 100 : task.progress
-          };
-        }
-        return task;
-      })
-    );
-  };
-
-  const confirmDelete = (task: Task) => {
-    setTaskToDelete(task);
-    setIsDeleteDialogOpen(true);
+    setTaskToEdit(null);
+    setStartDate(new Date());
+    setDueDate(undefined);
   };
 
   const handleDelete = () => {
     if (!taskToDelete) return;
     
-    // Save the task before deletion (for undo functionality)
-    setLastDeletedTask(taskToDelete);
+    const updatedTasks = tasks.filter(task => task.id !== taskToDelete.id);
+    setTasks(updatedTasks);
     
-    // Remove the task
-    setTasks(tasks.filter(task => task.id !== taskToDelete.id));
-    
-    // Close the dialog
-    setIsDeleteDialogOpen(false);
-    
-    // Show toast with undo option
     toast({
-      title: "Tâche supprimée",
+      title: config.tasks.messages.taskDeleted,
       description: taskToDelete.title,
-      action: (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleUndoDelete}
-          className="gap-1"
-        >
-          <span>Annuler</span>
-        </Button>
-      ),
     });
     
-    // Clear the task to delete
+    setIsDeleteDialogOpen(false);
     setTaskToDelete(null);
   };
 
-  const handleUndoDelete = () => {
-    if (lastDeletedTask) {
-      // Add the task back to the list
-      setTasks([...tasks, lastDeletedTask]);
-      
-      // Show confirmation
-      toast({
-        title: "Suppression annulée",
-        description: "La tâche a été restaurée",
-      });
-      
-      // Clear the last deleted task
-      setLastDeletedTask(null);
-    }
-  };
-
-  const handleEdit = (id: string) => {
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-      setCurrentTask({ ...task });
-      setDate(task.dueDate ? new Date(task.dueDate) : undefined);
-      setIsTaskDialogOpen(true);
-    }
-  };
-
-  const handleDueDateSelect = (selectedDate: Date | undefined) => {
-    setDate(selectedDate);
-    
-    if (selectedDate && currentTask) {
-      setCurrentTask({
-        ...currentTask,
-        dueDate: format(selectedDate, 'yyyy-MM-dd')
-      });
-    } else if (currentTask) {
-      // If date is cleared
-      const updatedTask = { ...currentTask };
-      delete updatedTask.dueDate;
-      setCurrentTask(updatedTask);
-    }
-  };
-
-  // Filter tasks that can be parents (to avoid circular relationships)
-  const getPossibleParentTasks = (taskId?: string) => {
-    return tasks.filter(task => task.id !== taskId && !hasTaskAsAncestor(task.id, taskId));
-  };
-
-  // Check if a task has another task as an ancestor to prevent circular relationships
-  const hasTaskAsAncestor = (taskId: string, possibleAncestorId?: string): boolean => {
-    if (!possibleAncestorId) return false;
-    
-    const task = tasks.find(t => t.id === taskId);
-    if (!task || !task.parentId) return false;
-    
-    if (task.parentId === possibleAncestorId) return true;
-    
-    return hasTaskAsAncestor(task.parentId, possibleAncestorId);
-  };
-
-  // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-    return format(new Date(dateString), 'dd MMMM yyyy', { locale: fr });
-  };
-
   return (
-    <div className="w-full space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <Button 
-          onClick={handleAddTaskClick}
-          className="h-10 rounded-xl flex items-center gap-2"
-        >
-          <PlusCircle size={16} />
-          <span>{config.tasks.labels.add}</span>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">{config.tasks.title}</h2>
+        <Button onClick={() => {
+          setTaskToEdit({
+            id: '',
+            title: '',
+            completed: false,
+            startDate: format(new Date(), 'yyyy-MM-dd'),
+            progress: 0,
+            status: 'not_started',
+          });
+          setStartDate(new Date());
+          setDueDate(undefined);
+          setIsAddDialogOpen(true);
+        }}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          {config.tasks.addButton}
         </Button>
       </div>
       
-      <div className="space-y-1">
-        {filteredTasks.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">
-              {statusFilter 
-                ? `Aucune tâche avec le filtre actuel.` 
-                : config.tasks.labels.noTasks}
-            </p>
-          </div>
-        ) : (
-          filteredTasks.map((task) => (
+      {loading && (
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground">{config.tasks.loading}</p>
+        </div>
+      )}
+      
+      {!loading && error && (
+        <div className="py-8 text-center">
+          <p className="text-destructive">{error}</p>
+        </div>
+      )}
+      
+      {!loading && !error && filteredTasks.length === 0 && (
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground">{config.tasks.noTasks}</p>
+        </div>
+      )}
+      
+      {!loading && !error && filteredTasks.length > 0 && (
+        <div className="space-y-2">
+          {filteredTasks.map(task => (
             <div 
               key={task.id}
               className={cn(
-                "flex items-center justify-between p-3 rounded-xl transition-all duration-300 hover:bg-secondary/50 group",
-                task.completed && "bg-secondary/30"
+                "p-3 border rounded-lg flex items-center justify-between group hover:bg-accent/50 transition-colors",
+                task.completed && "bg-muted"
               )}
             >
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-3">
                 <Checkbox 
-                  checked={task.completed}
-                  onCheckedChange={() => handleToggleComplete(task.id)}
-                  id={`task-${task.id}`}
+                  checked={task.completed} 
+                  onCheckedChange={(checked) => {
+                    const updatedTasks = tasks.map(t => 
+                      t.id === task.id ? { ...t, completed: !!checked, status: !!checked ? 'completed' : t.status } : t
+                    );
+                    setTasks(updatedTasks);
+                    toast({
+                      title: checked ? config.tasks.messages.taskCompleted : config.tasks.messages.taskUncompleted,
+                      description: task.title,
+                    });
+                  }}
                 />
-                <div className="flex-1">
-                  <label 
-                    htmlFor={`task-${task.id}`}
-                    className={cn(
-                      "font-medium cursor-pointer",
-                      task.completed && "line-through text-muted-foreground"
-                    )}
-                  >
+                <div>
+                  <p className={cn(
+                    "font-medium",
+                    task.completed && "line-through text-muted-foreground"
+                  )}>
                     {task.title}
-                  </label>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    {task.category && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-                        {task.category}
-                      </span>
-                    )}
-                    {task.status && (
-                      <span className={cn(
-                        "text-xs px-1.5 py-0.5 rounded",
-                        task.status === 'completed' && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                        task.status === 'in_progress' && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-                        task.status === 'pending' && "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                      )}>
-                        {config.tasks.statuses.find(s => s.id === task.status)?.label || task.status}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                    {task.dueDate && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        {new Date(task.dueDate).toLocaleDateString('fr-FR')}
                       </span>
                     )}
                     {task.assignee && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span className="flex items-center gap-1">
                         <User size={12} />
                         {task.assignee}
                       </span>
                     )}
-                    {task.dueDate && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar size={12} />
-                        {formatDate(task.dueDate)}
-                      </span>
-                    )}
-                    {task.parentId && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <ListTodo size={12} />
-                        Sous-tâche
-                      </span>
-                    )}
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-full mt-2 bg-secondary h-1.5 rounded-full overflow-hidden">
-                    <div 
-                      className={cn(
-                        "h-full",
-                        task.status === 'completed' ? "bg-green-500" : "bg-blue-500"
-                      )}
-                      style={{ width: `${task.progress}%` }}
-                    />
+                    <span className="flex items-center gap-1">
+                      <ListTodo size={12} />
+                      {task.progress}%
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button 
                   variant="ghost" 
-                  size="icon" 
-                  onClick={() => handleEdit(task.id)}
+                  size="icon"
+                  onClick={() => {
+                    setTaskToEdit(task);
+                    setStartDate(task.startDate ? new Date(task.startDate) : new Date());
+                    setDueDate(task.dueDate ? new Date(task.dueDate) : undefined);
+                    setIsEditDialogOpen(true);
+                  }}
                 >
                   <Edit size={16} />
                 </Button>
                 <Button 
                   variant="ghost" 
-                  size="icon" 
-                  onClick={() => confirmDelete(task)}
+                  size="icon"
+                  onClick={() => {
+                    setTaskToDelete(task);
+                    setIsDeleteDialogOpen(true);
+                  }}
                 >
                   <Trash2 size={16} />
                 </Button>
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {/* Task Add/Edit Dialog */}
-      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+      {/* Add Task Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>
-              {currentTask?.id ? config.tasks.labels.edit : config.tasks.labels.add}
-            </DialogTitle>
-            <DialogDescription>
-              Complétez les informations de la tâche ci-dessous.
-            </DialogDescription>
+            <DialogTitle>{config.tasks.addDialog.title}</DialogTitle>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">
-                {config.tasks.labels.title}
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="title">{config.tasks.addDialog.titleField}</Label>
               <Input
                 id="title"
-                value={currentTask?.title || ''}
-                onChange={(e) => setCurrentTask(prev => prev ? {...prev, title: e.target.value} : null)}
-                className="col-span-3"
+                placeholder={config.tasks.addDialog.titlePlaceholder}
+                value={taskToEdit?.title || ''}
+                onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, title: e.target.value } : null)}
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="startDate" className="text-right">
-                {config.tasks.labels.startDate}
-              </Label>
-              <Input
-                id="startDate"
-                value={currentTask?.startDate || ''}
-                disabled
-                className="col-span-3 bg-muted"
-              />
+            <div className="grid gap-2">
+              <Label>{config.tasks.addDialog.startDate}</Label>
+              <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, 'PPP', { locale: fr }) : config.tasks.addDialog.selectDate}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => {
+                      setStartDate(date);
+                      setTaskToEdit(prev => prev ? { ...prev, startDate: date ? format(date, 'yyyy-MM-dd') : '' } : null);
+                      setIsStartDateOpen(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dueDate" className="text-right">
-                {config.tasks.labels.dueDate}
-              </Label>
-              <div className="col-span-3">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      {date ? (
-                        format(date, 'dd MMMM yyyy', { locale: fr })
-                      ) : (
-                        <span className="text-muted-foreground">Sélectionner une date</span>
-                      )}
-                      <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={date}
-                      onSelect={handleDueDateSelect}
-                      disabled={(date) => currentTask?.startDate ? date < new Date(currentTask.startDate) : false}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
+            <div className="grid gap-2">
+              <Label>{config.tasks.addDialog.dueDate}</Label>
+              <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, 'PPP', { locale: fr }) : config.tasks.addDialog.selectDate}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={(date) => {
+                      setDueDate(date);
+                      setTaskToEdit(prev => prev ? { ...prev, dueDate: date ? format(date, 'yyyy-MM-dd') : undefined } : null);
+                      setIsDueDateOpen(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="assignee" className="text-right">
-                {config.tasks.labels.assignee}
-              </Label>
+            <div className="grid gap-2">
+              <Label htmlFor="assignee">{config.tasks.addDialog.assignee}</Label>
               <Input
                 id="assignee"
-                value={currentTask?.assignee || ''}
-                onChange={(e) => setCurrentTask(prev => prev ? {...prev, assignee: e.target.value} : null)}
-                className="col-span-3"
+                placeholder={config.tasks.addDialog.assigneePlaceholder}
+                value={taskToEdit?.assignee || ''}
+                onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, assignee: e.target.value } : null)}
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                {config.tasks.labels.status}
-              </Label>
-              <Select 
-                value={currentTask?.status || 'pending'}
-                onValueChange={(value) => setCurrentTask(prev => {
-                  if (!prev) return null;
-                  const newState = {...prev, status: value};
-                  // Update completed state based on status
-                  if (value === 'completed') {
-                    newState.completed = true;
-                    newState.progress = 100;
-                  } else if (prev.status === 'completed') {
-                    newState.completed = false;
-                  }
-                  return newState;
-                })}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Sélectionner un état" />
-                </SelectTrigger>
-                <SelectContent>
-                  {config.tasks.statuses.map((status) => (
-                    <SelectItem key={status.id} value={status.id}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="progress" className="text-right">
-                {config.tasks.labels.progress}
-              </Label>
-              <div className="col-span-3 flex items-center gap-4">
-                <Slider
-                  value={[currentTask?.progress || 0]}
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="flex-1"
-                  onValueChange={(value) => setCurrentTask(prev => {
-                    if (!prev) return null;
-                    const newProgress = value[0];
-                    const newState = {...prev, progress: newProgress};
-                    // Update status and completed based on progress
-                    if (newProgress === 100) {
-                      newState.status = 'completed';
-                      newState.completed = true;
-                    } else if (newProgress > 0 && prev.status === 'pending') {
-                      newState.status = 'in_progress';
-                    } else if (newProgress === 0 && prev.status === 'in_progress') {
-                      newState.status = 'pending';
-                    }
-                    return newState;
-                  })}
-                />
-                <span className="w-12 text-right">{currentTask?.progress || 0}%</span>
+            <div className="grid gap-2">
+              <div className="flex justify-between">
+                <Label htmlFor="progress">{config.tasks.addDialog.progress}</Label>
+                <span className="text-sm text-muted-foreground">{taskToEdit?.progress || 0}%</span>
               </div>
+              <Slider
+                id="progress"
+                min={0}
+                max={100}
+                step={5}
+                value={[taskToEdit?.progress || 0]}
+                onValueChange={(value) => setTaskToEdit(prev => prev ? { ...prev, progress: value[0] } : null)}
+              />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
-                {config.tasks.labels.category}
-              </Label>
-              <Select 
-                value={currentTask?.category}
-                onValueChange={(value) => setCurrentTask(prev => prev ? {...prev, category: value} : null)}
+            <div className="grid gap-2">
+              <Label htmlFor="status">{config.tasks.addDialog.status}</Label>
+              <Select
+                value={taskToEdit?.status || 'not_started'}
+                onValueChange={(value) => setTaskToEdit(prev => prev ? { ...prev, status: value } : null)}
               >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Sélectionner une catégorie" />
+                <SelectTrigger>
+                  <SelectValue placeholder={config.tasks.addDialog.statusPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
-                  {config.tasks.defaultCategories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="not_started">{config.tasks.statuses.not_started}</SelectItem>
+                  <SelectItem value="in_progress">{config.tasks.statuses.in_progress}</SelectItem>
+                  <SelectItem value="completed">{config.tasks.statuses.completed}</SelectItem>
+                  <SelectItem value="pending">{config.tasks.statuses.pending}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="parentTask" className="text-right">
-                {config.tasks.labels.parentTask}
-              </Label>
-              <Select 
-                value={currentTask?.parentId}
-                onValueChange={(value) => setCurrentTask(prev => prev ? {...prev, parentId: value === "none" ? undefined : value} : null)}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Aucune tâche parent" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucune tâche parent</SelectItem>
-                  {getPossibleParentTasks(currentTask?.id).map((task) => (
-                    <SelectItem key={task.id} value={task.id}>
-                      {task.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid gap-2">
+              <Label htmlFor="category">{config.tasks.addDialog.category}</Label>
+              <Input
+                id="category"
+                placeholder={config.tasks.addDialog.categoryPlaceholder}
+                value={taskToEdit?.category || ''}
+                onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, category: e.target.value } : null)}
+              />
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsTaskDialogOpen(false)}>
-              {config.tasks.labels.cancel}
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                setTaskToEdit(null);
+              }}
+            >
+              {config.tasks.addDialog.cancel}
             </Button>
             <Button onClick={handleSaveTask}>
-              {config.tasks.labels.save}
+              {config.tasks.addDialog.save}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Task Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      
+      {/* Edit Task Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Confirmer la suppression
-            </DialogTitle>
+            <DialogTitle>{config.tasks.editDialog.title}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-title">{config.tasks.editDialog.titleField}</Label>
+              <Input
+                id="edit-title"
+                placeholder={config.tasks.editDialog.titlePlaceholder}
+                value={taskToEdit?.title || ''}
+                onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, title: e.target.value } : null)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label>{config.tasks.editDialog.startDate}</Label>
+              <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, 'PPP', { locale: fr }) : config.tasks.editDialog.selectDate}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => {
+                      setStartDate(date);
+                      setTaskToEdit(prev => prev ? { ...prev, startDate: date ? format(date, 'yyyy-MM-dd') : '' } : null);
+                      setIsStartDateOpen(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label>{config.tasks.editDialog.dueDate}</Label>
+              <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="justify-start text-left font-normal"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, 'PPP', { locale: fr }) : config.tasks.editDialog.selectDate}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={(date) => {
+                      setDueDate(date);
+                      setTaskToEdit(prev => prev ? { ...prev, dueDate: date ? format(date, 'yyyy-MM-dd') : undefined } : null);
+                      setIsDueDateOpen(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-assignee">{config.tasks.editDialog.assignee}</Label>
+              <Input
+                id="edit-assignee"
+                placeholder={config.tasks.editDialog.assigneePlaceholder}
+                value={taskToEdit?.assignee || ''}
+                onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, assignee: e.target.value } : null)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <div className="flex justify-between">
+                <Label htmlFor="edit-progress">{config.tasks.editDialog.progress}</Label>
+                <span className="text-sm text-muted-foreground">{taskToEdit?.progress || 0}%</span>
+              </div>
+              <Slider
+                id="edit-progress"
+                min={0}
+                max={100}
+                step={5}
+                value={[taskToEdit?.progress || 0]}
+                onValueChange={(value) => setTaskToEdit(prev => prev ? { ...prev, progress: value[0] } : null)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-status">{config.tasks.editDialog.status}</Label>
+              <Select
+                value={taskToEdit?.status || 'not_started'}
+                onValueChange={(value) => setTaskToEdit(prev => prev ? { ...prev, status: value } : null)}
+              >
+                <SelectTrigger id="edit-status">
+                  <SelectValue placeholder={config.tasks.editDialog.statusPlaceholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not_started">{config.tasks.statuses.not_started}</SelectItem>
+                  <SelectItem value="in_progress">{config.tasks.statuses.in_progress}</SelectItem>
+                  <SelectItem value="completed">{config.tasks.statuses.completed}</SelectItem>
+                  <SelectItem value="pending">{config.tasks.statuses.pending}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="edit-category">{config.tasks.editDialog.category}</Label>
+              <Input
+                id="edit-category"
+                placeholder={config.tasks.editDialog.categoryPlaceholder}
+                value={taskToEdit?.category || ''}
+                onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, category: e.target.value } : null)}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                setTaskToEdit(null);
+              }}
+            >
+              {config.tasks.editDialog.cancel}
+            </Button>
+            <Button onClick={handleSaveTask}>
+              {config.tasks.editDialog.save}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Task Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{config.tasks.deleteDialog.title}</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action ne peut pas être annulée directement.
+              {config.tasks.deleteDialog.description}
             </DialogDescription>
           </DialogHeader>
           
@@ -640,13 +608,13 @@ const TaskList: React.FC<TaskListProps> = ({ statusFilter }) => {
               variant="outline" 
               onClick={() => setIsDeleteDialogOpen(false)}
             >
-              Annuler
+              {config.tasks.deleteDialog.cancel}
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDelete}
             >
-              Supprimer
+              {config.tasks.deleteDialog.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -40,8 +40,8 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
         setLoading(true);
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
-        const sheetId = config.googleSheets.sheets.tasks;
-        const range = 'A2:H100'; // Adjust based on your sheet structure
+        const sheetId = config.googleSheets.tasksSheet.spreadsheetId;
+        const range = 'A1:H100'; // Adjust based on your sheet structure
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -61,13 +61,58 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
             dueDate: row[3] || '',
           }));
           
-          // Calculate stats from tasks
-          const calculatedStats = calculateStats(tasks);
-          setStats(calculatedStats);
+          // Calculate statistics
+          const totalTasks = tasks.length;
+          const completedTasks = tasks.filter(task => task.status === 'completed').length;
+          const remainingTasks = totalTasks - completedTasks;
+          
+          // Calculate overdue tasks
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const overdueTasks = tasks.filter(task => {
+            if (task.status === 'completed') return false;
+            if (!task.dueDate) return false;
+            
+            const dueDate = new Date(task.dueDate);
+            return dueDate < today;
+          }).length;
+          
+          // Find next deadline
+          const incompleteTasks = tasks.filter(task => task.status !== 'completed' && task.dueDate);
+          let nextDeadline = '';
+          
+          if (incompleteTasks.length > 0) {
+            incompleteTasks.sort((a, b) => {
+              const dateA = new Date(a.dueDate);
+              const dateB = new Date(b.dueDate);
+              return dateA.getTime() - dateB.getTime();
+            });
+            
+            const nextDueDate = new Date(incompleteTasks[0].dueDate);
+            nextDeadline = nextDueDate.toLocaleDateString('fr-FR');
+          }
+          
+          setStats({
+            totalTasks,
+            completedTasks,
+            remainingTasks,
+            overdueTasks,
+            nextDeadline,
+          });
+        } else {
+          // If no data is returned, set default values
+          setStats({
+            totalTasks: 0,
+            completedTasks: 0,
+            remainingTasks: 0,
+            overdueTasks: 0,
+            nextDeadline: 'Aucune',
+          });
         }
       } catch (error) {
         console.error('Error fetching data from Google Sheets:', error);
-        // Fallback to mock data if there's an error
+        // Fallback to mock data in case of error
         setStats({
           totalTasks: 12,
           completedTasks: 8,
@@ -83,42 +128,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
     fetchTasksFromGoogleSheets();
   }, []);
 
-  const calculateStats = (tasks: Task[]): StatData => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const completedTasks = tasks.filter(task => task.status === 'completed').length;
-    const totalTasks = tasks.length;
-    const remainingTasks = totalTasks - completedTasks;
-    
-    // Calculate overdue tasks
-    const overdueTasks = tasks.filter(task => {
-      if (task.status === 'completed') return false;
-      
-      const dueDate = new Date(task.dueDate);
-      return dueDate < today;
-    }).length;
-    
-    // Find next deadline
-    let nextDeadline = '';
-    const futureTasks = tasks
-      .filter(task => task.status !== 'completed' && task.dueDate)
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-    
-    if (futureTasks.length > 0) {
-      const nextDueDate = new Date(futureTasks[0].dueDate);
-      nextDeadline = nextDueDate.toLocaleDateString('fr-FR');
-    }
-    
-    return {
-      totalTasks,
-      completedTasks,
-      remainingTasks,
-      overdueTasks,
-      nextDeadline,
-    };
-  };
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
       <Card 
@@ -132,7 +141,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
           <div className="inline-flex items-center justify-center rounded-full p-1.5 bg-primary/10 mb-2">
             <CircleDashed className={cn(
               "h-5 w-5 text-primary transition-all",
-              activeFilter === 'all' && "animate-spin"
+              activeFilter === 'all' && "animate-pulse"
             )} />
           </div>
           <h3 className="text-2xl font-semibold">{loading ? '...' : stats.totalTasks}</h3>
