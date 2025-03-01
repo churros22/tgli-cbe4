@@ -75,18 +75,48 @@ const config = {
   diagrammes: {
     categories: [
       {
-        name: "Schémas de processus",
+        name: "Diagrammes de Flux",
         items: [
-          { title: "Flux de processus principal", fileName: "process-flow.html" },
-          { title: "Processus de validation", fileName: "validation-process.html" },
-          { title: "Contrôle qualité", fileName: "quality-control.html" },
+          { title: "Flux de procédé de Préparation MP -Surgi-", fileName: "diagramme_de_flux_de_prep_surgi_gloves.html" },
+          { title: "Flux de procédé de Préparation MP -Exam-", fileName: "diagramme_de_flux_de_prep_exam_gloves.html" },
         ]
       },
       {
-        name: "Organisation",
+        name: "MindMaps ASQ CQE Chapitre 3",
         items: [
-          { title: "Structure d'équipe", fileName: "team-structure.html" },
-          { title: "Matrice de responsabilité", fileName: "responsibility-matrix.html" },
+          { title: "ADLA Yacine", fileName: "yacine_3.html" },
+          { title: "CHEBBAH Ahmed", fileName: "ahmed_3.html" },
+          { title: "CHEBBAH Ahmed", fileName: "damou_3.html" },
+        ]
+      }
+      {
+        name: "MindMaps ASQ CQE Chapitre 4",
+        items: [
+          { title: "ADLA Yacine", fileName: "yacine_4.html" },
+          { title: "CHEBBAH Ahmed", fileName: "ahmed_4.html" },
+          { title: "CHEBBAH Ahmed", fileName: "damou_4.html" },
+        ]
+      }
+      {
+        name: "MindMaps ASQ CQE Chapitre 5",
+        items: [
+          { title: "ADLA Yacine", fileName: "yacine_5.html" },
+          { title: "CHEBBAH Ahmed", fileName: "ahmed_5.html" },
+          { title: "CHEBBAH Ahmed", fileName: "damou_5.html" },
+        ]
+      }
+      {
+        name: "MindMaps ASQ CQE Chapitre 6",
+        items: [
+          { title: "ADLA Yacine", fileName: "yacine_6.html" },
+          { title: "CHEBBAH Ahmed", fileName: "ahmed_7.html" },
+          { title: "CHEBBAH Ahmed", fileName: "damou_6.html" },
+        ]
+      }
+      {
+        name: "MindMaps Metrologie Handbook",
+        items: [
+          { title: "LALIBI Rekia Hafsa", fileName: "example.html" },
         ]
       }
     ]
