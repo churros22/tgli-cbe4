@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -75,7 +75,7 @@ const TaskList: React.FC<TaskListProps> = ({ filter, onProgressUpdate }) => {
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.tasksSheet.spreadsheetId;
-        const range = 'Tasks!A2:J100'; // Adjusted to include category and parentId
+        const range = config.googleSheets.tasksSheet.range; // Use range from config
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -89,17 +89,17 @@ const TaskList: React.FC<TaskListProps> = ({ filter, onProgressUpdate }) => {
         // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
           // Transform the raw data into Task objects
-          const fetchedTasks: Task[] = data.values.map((row: string[]) => ({
+          const fetchedTasks: Task[] = data.values.slice(1).map((row: string[]) => ({
             id: row[0] || String(Math.random()),
             title: row[1] || 'Untitled Task',
-            completed: row[2] === 'true' || row[2] === 'completed',
-            startDate: row[3] || format(new Date(), 'yyyy-MM-dd'),
+            completed: row[3] === 'completed',
+            startDate: row[4] ? row[4] : format(new Date(), 'yyyy-MM-dd'),
             dueDate: row[4] || undefined,
             assignee: row[5] || undefined,
-            progress: parseInt(row[6] || '0', 10),
-            status: row[7] || 'not_started',
-            category: row[8] || undefined,
-            parentId: row[9] || undefined
+            progress: row[3] === 'completed' ? 100 : row[3] === 'in_progress' ? 50 : 0, // Calculate progress based on status
+            status: row[3] || 'not_started',
+            category: row[6] || undefined,
+            parentId: row[0].includes('.') ? row[0].split('.')[0] : undefined
           }));
           
           setTasks(fetchedTasks);
@@ -129,8 +129,13 @@ const TaskList: React.FC<TaskListProps> = ({ filter, onProgressUpdate }) => {
     if (filter === 'pending') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
-      return task.status === 'pending' || (taskDueDate && taskDueDate < today && !task.completed);
+      if (!task.dueDate) return task.status === 'pending';
+      try {
+        const taskDueDate = new Date(task.dueDate);
+        return task.status === 'pending' || (isValid(taskDueDate) && taskDueDate < today && !task.completed);
+      } catch (e) {
+        return task.status === 'pending';
+      }
     }
     return true;
   });
@@ -226,6 +231,20 @@ const TaskList: React.FC<TaskListProps> = ({ filter, onProgressUpdate }) => {
     setLastDeletedTask(null);
   };
 
+  // Helper function for safe date formatting
+  const formatDateSafely = (dateString: string | undefined) => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      if (!isValid(date)) return '';
+      return format(date, 'dd/MM/yyyy', { locale: fr });
+    } catch (e) {
+      console.error('Error formatting date:', e);
+      return '';
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -301,7 +320,7 @@ const TaskList: React.FC<TaskListProps> = ({ filter, onProgressUpdate }) => {
                     {task.dueDate && (
                       <span className="flex items-center gap-1">
                         <Calendar size={12} />
-                        {new Date(task.dueDate).toLocaleDateString('fr-FR')}
+                        {formatDateSafely(task.dueDate)}
                       </span>
                     )}
                     {task.assignee && (

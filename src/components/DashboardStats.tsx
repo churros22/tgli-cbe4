@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, CheckCircle, CircleDashed, Clock, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,7 +42,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.tasksSheet.spreadsheetId;
-        const range = 'A1:H100'; // Adjust based on your sheet structure
+        const range = config.googleSheets.tasksSheet.range;
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -54,11 +55,14 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
         
         // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
-          const tasks: Task[] = data.values.map((row: string[]) => ({
+          // Skip the header row (first row)
+          const rows = data.values.slice(1);
+          
+          const tasks: Task[] = rows.map((row: string[]) => ({
             id: row[0] || '',
             title: row[1] || '',
-            status: row[2] || '',
-            dueDate: row[3] || '',
+            status: row[3] || '',
+            dueDate: row[4] || '',
           }));
           
           // Calculate statistics
@@ -74,12 +78,21 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
             if (task.status === 'completed') return false;
             if (!task.dueDate) return false;
             
-            const dueDate = new Date(task.dueDate);
-            return dueDate < today;
+            try {
+              const dueDate = new Date(task.dueDate);
+              return !isNaN(dueDate.getTime()) && dueDate < today;
+            } catch (e) {
+              return false;
+            }
           }).length;
           
           // Find next deadline
-          const incompleteTasks = tasks.filter(task => task.status !== 'completed' && task.dueDate);
+          const incompleteTasks = tasks.filter(task => 
+            task.status !== 'completed' && 
+            task.dueDate && 
+            !isNaN(new Date(task.dueDate).getTime())
+          );
+          
           let nextDeadline = '';
           
           if (incompleteTasks.length > 0) {
@@ -89,8 +102,18 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
               return dateA.getTime() - dateB.getTime();
             });
             
-            const nextDueDate = new Date(incompleteTasks[0].dueDate);
-            nextDeadline = nextDueDate.toLocaleDateString('fr-FR');
+            try {
+              const nextDueDate = new Date(incompleteTasks[0].dueDate);
+              if (!isNaN(nextDueDate.getTime())) {
+                nextDeadline = nextDueDate.toLocaleDateString('fr-FR');
+              } else {
+                nextDeadline = 'Aucune';
+              }
+            } catch (e) {
+              nextDeadline = 'Aucune';
+            }
+          } else {
+            nextDeadline = 'Aucune';
           }
           
           setStats({
@@ -114,11 +137,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
         console.error('Error fetching data from Google Sheets:', error);
         // Fallback to mock data in case of error
         setStats({
-          totalTasks: 12,
-          completedTasks: 8,
-          remainingTasks: 4,
-          overdueTasks: 1,
-          nextDeadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+          totalTasks: 0,
+          completedTasks: 0,
+          remainingTasks: 0,
+          overdueTasks: 0,
+          nextDeadline: 'Aucune',
         });
       } finally {
         setLoading(false);

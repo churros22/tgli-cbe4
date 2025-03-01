@@ -18,6 +18,9 @@ const Dashboard: React.FC = () => {
     if (!isAuthenticated) {
       navigate('/');
     }
+    
+    // Set the document title with the app name from config
+    document.title = config.appName;
   }, [isAuthenticated, navigate]);
 
   // Add a callback to receive progress updates from the TaskList component

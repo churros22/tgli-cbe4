@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, CheckCircle, Clock, CircleDashed } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,7 +29,7 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.tasksSheet.spreadsheetId;
-        const range = 'Tasks!A2:H100'; // Adjust based on your sheet structure
+        const range = config.googleSheets.tasksSheet.range;
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -41,17 +42,16 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
         
         // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
-          // Calculate overall progress based on task progress values
-          const totalTasks = data.values.length;
-          let progressSum = 0;
+          // Skip the header row (first row)
+          const rows = data.values.slice(1);
+          // Calculate overall progress based on completed tasks
+          const totalTasks = rows.length;
+          const completedTasks = rows.filter((row: string[]) => row[3] === 'completed').length;
+          const inProgressTasks = rows.filter((row: string[]) => row[3] === 'in_progress').length;
           
-          data.values.forEach((row: string[]) => {
-            const taskProgress = parseInt(row[6] || '0', 10);
-            progressSum += taskProgress;
-          });
-          
-          const calculatedProgress = Math.round(progressSum / totalTasks);
-          setProgress(calculatedProgress);
+          // Calculate a weighted progress: completed tasks count as 100%, in progress as 50%
+          const progressValue = ((completedTasks * 100) + (inProgressTasks * 50)) / totalTasks;
+          setProgress(Math.round(progressValue));
         } else {
           // Default progress if no data
           setProgress(0);
