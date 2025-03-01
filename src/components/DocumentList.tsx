@@ -1,9 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink, Search, FileText, FileQuestion } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import config from '@/config';
 
 // This is a placeholder component that will be replaced with actual data from Google Sheets
 // For now, we'll use mock data
@@ -97,93 +97,185 @@ const mockCategories: Category[] = [
 ];
 
 const DocumentList: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categories, setCategories] = useState<Category[]>(mockCategories);
-  
-  // This function will filter documents based on search term
-  const filteredCategories = categories.map(category => {
-    return {
-      ...category,
-      documents: category.documents.filter(doc => 
-        doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.category.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    };
-  }).filter(category => category.documents.length > 0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchDocumentsFromGoogleSheets = async () => {
+      try {
+        setLoading(true);
+        // Construct the Google Sheets API URL with your API key and spreadsheet ID
+        const apiKey = config.googleSheets.apiKey;
+        const sheetId = config.googleSheets.documentsSheet.spreadsheetId;
+        const range = 'Documents!A1:H100'; // Adjust based on your sheet structure
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch documents from Google Sheets');
+        }
+        
+        const data = await response.json();
+        
+        // Process the data from Google Sheets
+        if (data && data.values && data.values.length > 0) {
+          // Transform the raw data into Document objects
+          const documents: Document[] = data.values.map((row: string[]) => ({
+            id: row[0] || String(Math.random()),
+            title: row[1] || 'Untitled Document',
+            category: row[2] || 'Uncategorized',
+            url: row[3] || '#',
+            type: (row[4] || 'other') as 'doc' | 'pdf' | 'other',
+            date: row[5] || undefined
+          }));
+          
+          // Group documents by category
+          const categoriesMap: Record<string, Document[]> = {};
+          
+          documents.forEach(doc => {
+            if (!categoriesMap[doc.category]) {
+              categoriesMap[doc.category] = [];
+            }
+            categoriesMap[doc.category].push(doc);
+          });
+          
+          // Convert the map to an array of Category objects
+          const categoriesArray: Category[] = Object.keys(categoriesMap).map(name => ({
+            name,
+            documents: categoriesMap[name]
+          }));
+          
+          setCategories(categoriesArray);
+        } else {
+          // If no data is returned, set an empty array
+          setCategories([]);
+        }
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        setError('Failed to load documents. Please try again later.');
+        // Fallback to empty categories
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocumentsFromGoogleSheets();
+  }, []);
+
+  // Filter categories based on search query
+  const filteredCategories = categories.map(category => ({
+    ...category,
+    documents: category.documents.filter(doc => 
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.category.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(category => category.documents.length > 0);
+
+  // Helper function to get the appropriate icon based on document type
   const getDocumentIcon = (type: string) => {
     switch (type) {
       case 'doc':
-        return <FileText size={20} className="text-blue-500" />;
+        return <FileText size={20} className="text-blue-500 opacity-80" />;
       case 'pdf':
-        return <FileText size={20} className="text-red-500" />;
+        return <FileText size={20} className="text-red-500 opacity-80" />;
       default:
-        return <FileQuestion size={20} className="text-gray-500" />;
+        return <FileQuestion size={20} className="text-primary opacity-80" />;
     }
   };
 
   return (
     <div className="space-y-6">
+      {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
         <Input
           type="text"
-          placeholder="Search documents..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 py-2 rounded-xl"
+          placeholder="Rechercher un document..."
+          className="pl-10 py-5"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
-
-      {filteredCategories.length === 0 ? (
+      
+      {/* Loading State */}
+      {loading && (
         <div className="py-8 text-center">
-          <p className="text-muted-foreground">No documents found matching your search.</p>
+          <p className="text-muted-foreground">Chargement des documents...</p>
         </div>
-      ) : (
-        <div className="space-y-8">
-          {filteredCategories.map((category, index) => (
-            <div 
-              key={category.name}
-              className={cn(
-                "animate-fade-in", 
-                { "animation-delay-100": index === 0 },
-                { "animation-delay-200": index === 1 },
-                { "animation-delay-300": index === 2 }
-              )}
-            >
-              <h3 className="text-xl font-medium mb-4">{category.name}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {category.documents.map((document) => (
-                  <Card 
-                    key={document.id}
-                    className="overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer border"
-                    onClick={() => window.open(document.url, '_blank')}
-                  >
-                    <div className="p-4 flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                        {getDocumentIcon(document.type)}
-                        <div>
-                          <h4 className="font-medium group-hover:text-primary transition-colors duration-300">
-                            {document.title}
-                          </h4>
-                          {document.date && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Updated: {new Date(document.date).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <ExternalLink 
-                        size={16} 
-                        className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      />
-                    </div>
-                  </Card>
-                ))}
-              </div>
+      )}
+      
+      {/* Error State */}
+      {error && !loading && (
+        <div className="py-8 text-center">
+          <p className="text-destructive">{error}</p>
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {!loading && !error && categories.length === 0 && (
+        <div className="py-8 text-center">
+          <p className="text-muted-foreground">Aucun document disponible.</p>
+        </div>
+      )}
+      
+      {/* Documents List */}
+      {!loading && !error && (
+        <>
+          {filteredCategories.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-muted-foreground">Aucun document trouvé correspondant à votre recherche.</p>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="space-y-8">
+              {filteredCategories.map((category, index) => (
+                <div 
+                  key={category.name}
+                  className={cn(
+                    "animate-fade-in", 
+                    { "animation-delay-100": index === 0 },
+                    { "animation-delay-200": index === 1 },
+                    { "animation-delay-300": index === 2 }
+                  )}
+                >
+                  <h3 className="text-xl font-medium mb-4">{category.name}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {category.documents.map((document) => (
+                      <Card 
+                        key={document.id}
+                        className="overflow-hidden group hover:shadow-md transition-all duration-300 cursor-pointer border"
+                        onClick={() => window.open(document.url, '_blank')}
+                      >
+                        <div className="p-4 flex items-start justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getDocumentIcon(document.type)}
+                            <div>
+                              <h4 className="font-medium group-hover:text-primary transition-colors duration-300">
+                                {document.title}
+                              </h4>
+                              {document.date && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Updated: {new Date(document.date).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <ExternalLink 
+                            size={16} 
+                            className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
