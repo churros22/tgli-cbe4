@@ -88,7 +88,7 @@ const config = {
           { title: "CHEBBAH Ahmed", fileName: "ahmed_3.html" },
           { title: "CHEBBAH Ahmed", fileName: "damou_3.html" },
         ]
-      }
+      },
       {
         name: "MindMaps ASQ CQE Chapitre 4",
         items: [
@@ -96,7 +96,7 @@ const config = {
           { title: "CHEBBAH Ahmed", fileName: "ahmed_4.html" },
           { title: "CHEBBAH Ahmed", fileName: "damou_4.html" },
         ]
-      }
+      },
       {
         name: "MindMaps ASQ CQE Chapitre 5",
         items: [
@@ -104,7 +104,7 @@ const config = {
           { title: "CHEBBAH Ahmed", fileName: "ahmed_5.html" },
           { title: "CHEBBAH Ahmed", fileName: "damou_5.html" },
         ]
-      }
+      },
       {
         name: "MindMaps ASQ CQE Chapitre 6",
         items: [
@@ -112,7 +112,7 @@ const config = {
           { title: "CHEBBAH Ahmed", fileName: "ahmed_7.html" },
           { title: "CHEBBAH Ahmed", fileName: "damou_6.html" },
         ]
-      }
+      },
       {
         name: "MindMaps Metrologie Handbook",
         items: [
