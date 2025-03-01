@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Search, FileText, FileQuestion } from 'lucide-react';
+import { ExternalLink, Search, FileText, FileQuestion, File } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -109,7 +109,7 @@ const DocumentList: React.FC = () => {
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.documentsSheet.spreadsheetId;
-        const range = 'Documents!A2:H100'; // Adjust based on your sheet structure
+        const range = 'Documents!A2:F100'; // Adjust based on your sheet structure
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -123,7 +123,7 @@ const DocumentList: React.FC = () => {
         // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
           // Transform the raw data into Document objects
-          const documents: Document[] = data.values.map((row: string[]) => ({
+          const fetchedDocuments: Document[] = data.values.map((row: string[]) => ({
             id: row[0] || String(Math.random()),
             title: row[1] || 'Untitled Document',
             category: row[2] || 'Uncategorized',
@@ -133,22 +133,22 @@ const DocumentList: React.FC = () => {
           }));
           
           // Group documents by category
-          const categoriesMap: Record<string, Document[]> = {};
+          const documentsByCategory: Record<string, Document[]> = {};
           
-          documents.forEach(doc => {
-            if (!categoriesMap[doc.category]) {
-              categoriesMap[doc.category] = [];
+          fetchedDocuments.forEach(doc => {
+            if (!documentsByCategory[doc.category]) {
+              documentsByCategory[doc.category] = [];
             }
-            categoriesMap[doc.category].push(doc);
+            documentsByCategory[doc.category].push(doc);
           });
           
-          // Convert the map to an array of Category objects
-          const categoriesArray: Category[] = Object.keys(categoriesMap).map(name => ({
+          // Convert to categories array
+          const fetchedCategories: Category[] = Object.keys(documentsByCategory).map(name => ({
             name,
-            documents: categoriesMap[name]
+            documents: documentsByCategory[name]
           }));
           
-          setCategories(categoriesArray);
+          setCategories(fetchedCategories);
         } else {
           // If no data is returned, set an empty array
           setCategories([]);
@@ -156,7 +156,7 @@ const DocumentList: React.FC = () => {
       } catch (error) {
         console.error('Error fetching documents:', error);
         setError('Failed to load documents. Please try again later.');
-        // Fallback to empty categories
+        // Fallback to empty categories array
         setCategories([]);
       } finally {
         setLoading(false);
@@ -166,7 +166,7 @@ const DocumentList: React.FC = () => {
     fetchDocumentsFromGoogleSheets();
   }, []);
 
-  // Filter categories based on search query
+  // Filter documents based on search query
   const filteredCategories = categories.map(category => ({
     ...category,
     documents: category.documents.filter(doc => 
@@ -179,55 +179,52 @@ const DocumentList: React.FC = () => {
   const getDocumentIcon = (type: string) => {
     switch (type) {
       case 'doc':
-        return <FileText size={20} className="text-blue-500 opacity-80" />;
+        return <FileText className="h-5 w-5 text-blue-500" />;
       case 'pdf':
-        return <FileText size={20} className="text-red-500 opacity-80" />;
+        return <File className="h-5 w-5 text-red-500" />;
       default:
-        return <FileQuestion size={20} className="text-primary opacity-80" />;
+        return <FileQuestion className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('fr-FR');
+    } catch (e) {
+      return dateString;
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+      <div className="flex items-center space-x-2">
+        <Search className="h-5 w-5 text-muted-foreground" />
         <Input
-          type="text"
-          placeholder="Rechercher un document..."
-          className="pl-10 py-5"
+          placeholder="Rechercher des documents..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1"
         />
       </div>
       
-      {/* Loading State */}
       {loading && (
         <div className="py-8 text-center">
           <p className="text-muted-foreground">Chargement des documents...</p>
         </div>
       )}
       
-      {/* Error State */}
-      {error && !loading && (
+      {!loading && error && (
         <div className="py-8 text-center">
           <p className="text-destructive">{error}</p>
         </div>
       )}
       
-      {/* Empty State */}
-      {!loading && !error && categories.length === 0 && (
-        <div className="py-8 text-center">
-          <p className="text-muted-foreground">Aucun document disponible.</p>
-        </div>
-      )}
-      
-      {/* Documents List */}
       {!loading && !error && (
         <>
           {filteredCategories.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-muted-foreground">Aucun document trouvé correspondant à votre recherche.</p>
+              <p className="text-muted-foreground">Aucun document trouvé.</p>
             </div>
           ) : (
             <div className="space-y-8">
@@ -258,7 +255,7 @@ const DocumentList: React.FC = () => {
                               </h4>
                               {document.date && (
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  Updated: {new Date(document.date).toLocaleDateString()}
+                                  Mis à jour: {formatDate(document.date)}
                                 </p>
                               )}
                             </div>

@@ -84,7 +84,7 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
             {getProgressIcon()}
           </div>
           <div>
-            <h3 className="text-lg font-medium">Progression Globale</h3>
+            <h3 className="text-lg font-medium">{config.dashboard.overallProgress}</h3>
             <p className="text-muted-foreground text-xs">Vision d'ensemble du projet</p>
           </div>
         </div>

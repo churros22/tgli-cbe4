@@ -35,7 +35,7 @@ const TableauxList: React.FC = () => {
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.tableauxSheet.spreadsheetId;
-        const range = 'Tableaux!A2:H100'; // Adjust based on your sheet structure
+        const range = 'Tableaux!A2:F100'; // Adjust based on your sheet structure
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -49,32 +49,32 @@ const TableauxList: React.FC = () => {
         // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
           // Transform the raw data into Tableau objects
-          const tableaux: Tableau[] = data.values.map((row: string[]) => ({
+          const fetchedTableaux: Tableau[] = data.values.map((row: string[]) => ({
             id: row[0] || String(Math.random()),
             title: row[1] || 'Untitled Tableau',
             category: row[2] || 'Uncategorized',
             url: row[3] || '#',
-            type: (row[4] || 'other') as 'sheet' | 'pdf' | 'other',
+            type: (row[4] || 'sheet') as 'sheet' | 'pdf' | 'other',
             date: row[5] || undefined
           }));
           
           // Group tableaux by category
-          const categoriesMap: Record<string, Tableau[]> = {};
+          const tableauxByCategory: Record<string, Tableau[]> = {};
           
-          tableaux.forEach(tableau => {
-            if (!categoriesMap[tableau.category]) {
-              categoriesMap[tableau.category] = [];
+          fetchedTableaux.forEach(tableau => {
+            if (!tableauxByCategory[tableau.category]) {
+              tableauxByCategory[tableau.category] = [];
             }
-            categoriesMap[tableau.category].push(tableau);
+            tableauxByCategory[tableau.category].push(tableau);
           });
           
-          // Convert the map to an array of Category objects
-          const categoriesArray: Category[] = Object.keys(categoriesMap).map(name => ({
+          // Convert to categories array
+          const fetchedCategories: Category[] = Object.keys(tableauxByCategory).map(name => ({
             name,
-            tableaux: categoriesMap[name]
+            tableaux: tableauxByCategory[name]
           }));
           
-          setCategories(categoriesArray);
+          setCategories(fetchedCategories);
         } else {
           // If no data is returned, set an empty array
           setCategories([]);
@@ -82,7 +82,7 @@ const TableauxList: React.FC = () => {
       } catch (error) {
         console.error('Error fetching tableaux:', error);
         setError('Failed to load tableaux. Please try again later.');
-        // Fallback to empty categories
+        // Fallback to empty categories array
         setCategories([]);
       } finally {
         setLoading(false);
@@ -92,7 +92,7 @@ const TableauxList: React.FC = () => {
     fetchTableauxFromGoogleSheets();
   }, []);
 
-  // Filter categories based on search query
+  // Filter tableaux based on search query
   const filteredCategories = categories.map(category => ({
     ...category,
     tableaux: category.tableaux.filter(tableau => 
@@ -105,11 +105,9 @@ const TableauxList: React.FC = () => {
   const getTableauIcon = (type: string) => {
     switch (type) {
       case 'sheet':
-        return <FileSpreadsheet size={20} className="text-green-500 opacity-80" />;
-      case 'pdf':
-        return <FileSpreadsheet size={20} className="text-red-500 opacity-80" />;
+        return <FileSpreadsheet className="h-5 w-5 text-green-500" />;
       default:
-        return <Table size={20} className="text-primary opacity-80" />;
+        return <Table className="h-5 w-5 text-gray-500" />;
     }
   };
 
@@ -124,45 +122,33 @@ const TableauxList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
+      <div className="flex items-center space-x-2">
+        <Search className="h-5 w-5 text-muted-foreground" />
         <Input
-          type="text"
-          placeholder="Rechercher un tableau..."
-          className="pl-10 py-5"
+          placeholder="Rechercher des tableaux..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1"
         />
       </div>
       
-      {/* Loading State */}
       {loading && (
         <div className="py-8 text-center">
           <p className="text-muted-foreground">Chargement des tableaux...</p>
         </div>
       )}
       
-      {/* Error State */}
-      {error && !loading && (
+      {!loading && error && (
         <div className="py-8 text-center">
           <p className="text-destructive">{error}</p>
         </div>
       )}
       
-      {/* Empty State */}
-      {!loading && !error && categories.length === 0 && (
-        <div className="py-8 text-center">
-          <p className="text-muted-foreground">Aucun tableau disponible.</p>
-        </div>
-      )}
-      
-      {/* Tableaux List */}
       {!loading && !error && (
         <>
           {filteredCategories.length === 0 ? (
             <div className="py-8 text-center">
-              <p className="text-muted-foreground">Aucun tableau trouvé correspondant à votre recherche.</p>
+              <p className="text-muted-foreground">Aucun tableau trouvé.</p>
             </div>
           ) : (
             <div className="space-y-8">
