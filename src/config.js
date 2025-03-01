@@ -17,24 +17,27 @@ const config = {
   
   // Configuration de l'API Google Sheets
   googleSheets: {
-    // Remplacez ces valeurs par votre clé API et ID de feuilles réels
-    apiKey: "YOUR_GOOGLE_SHEETS_API_KEY", // Clé API Google Sheets
+    // Configuration nécessaire pour l'API Google Sheets
+    apiKey: "", // Votre clé API Google (à remplir)
+    clientId: "", // Votre ID client OAuth (à remplir)
+    scopes: "https://www.googleapis.com/auth/spreadsheets.readonly",
+    discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     
     // Feuille des tâches (pour le tableau de bord)
     tasksSheet: {
-      sheetId: "YOUR_TASKS_SHEET_ID", // ID de la feuille Google pour les tâches
+      spreadsheetId: "", // ID de votre Google Sheet (à remplir)
       range: "Tasks!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
     },
     
     // Feuille des documents (pour la page Documents)
     documentsSheet: {
-      sheetId: "YOUR_DOCUMENTS_SHEET_ID", // ID de la feuille Google pour les documents
+      spreadsheetId: "", // Peut être le même que tasks ou différent
       range: "Documents!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
     },
     
     // Feuille des tableaux (pour la page Tableaux)
     tableauxSheet: {
-      sheetId: "YOUR_TABLEAUX_SHEET_ID", // ID de la feuille Google pour les tableaux
+      spreadsheetId: "", // Peut être le même que tasks ou différent
       range: "Tableaux!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
     },
   },
