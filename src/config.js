@@ -127,11 +127,12 @@ const config = {
   // Configuration des tâches
   tasks: {
     // États des tâches disponibles
-    statuses: [
-      { id: "pending", label: "En attente" },
-      { id: "in_progress", label: "En cours" },
-      { id: "completed", label: "Complété" },
-    ],
+    statuses: {
+      not_started: "Non démarré",
+      in_progress: "En cours",
+      completed: "Complété",
+      pending: "En attente"
+    },
     
     // Catégories par défaut des tâches
     defaultCategories: [
@@ -152,6 +153,12 @@ const config = {
       addError: "Erreur lors de l'ajout de la tâche",
       updateError: "Erreur lors de la mise à jour de la tâche",
       deleteError: "Erreur lors de la suppression de la tâche",
+      taskAdded: "Tâche ajoutée",
+      taskUpdated: "Tâche mise à jour",
+      taskDeleted: "Tâche supprimée",
+      taskCompleted: "Tâche complétée",
+      taskUncompleted: "Tâche marquée comme non terminée",
+      titleRequired: "Le titre est requis"
     },
     
     // Étiquettes pour le formulaire de tâche
@@ -171,6 +178,56 @@ const config = {
       cancel: "Annuler",
       noTasks: "Aucune tâche pour le moment. Ajoutez votre première tâche ci-dessus.",
     },
+    
+    // Dialogues
+    addDialog: {
+      title: "Ajouter une tâche",
+      titleField: "Titre",
+      titlePlaceholder: "Entrez le titre de la tâche",
+      startDate: "Date de début",
+      dueDate: "Date d'échéance",
+      assignee: "Responsable",
+      assigneePlaceholder: "Qui est responsable de cette tâche ?",
+      progress: "Progression",
+      status: "Statut",
+      statusPlaceholder: "Sélectionnez un statut",
+      category: "Catégorie",
+      categoryPlaceholder: "Catégorie (ex: Documentation, Planification)",
+      selectDate: "Sélectionnez une date",
+      save: "Enregistrer",
+      cancel: "Annuler"
+    },
+    
+    editDialog: {
+      title: "Modifier la tâche",
+      titleField: "Titre",
+      titlePlaceholder: "Entrez le titre de la tâche",
+      startDate: "Date de début",
+      dueDate: "Date d'échéance",
+      assignee: "Responsable",
+      assigneePlaceholder: "Qui est responsable de cette tâche ?",
+      progress: "Progression",
+      status: "Statut",
+      statusPlaceholder: "Sélectionnez un statut",
+      category: "Catégorie",
+      categoryPlaceholder: "Catégorie (ex: Documentation, Planification)",
+      selectDate: "Sélectionnez une date",
+      save: "Enregistrer",
+      cancel: "Annuler"
+    },
+    
+    deleteDialog: {
+      title: "Supprimer la tâche",
+      description: "Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action ne peut pas être annulée.",
+      confirm: "Supprimer",
+      cancel: "Annuler"
+    },
+    
+    // Autres labels
+    title: "Tâches",
+    addButton: "Ajouter une tâche",
+    loading: "Chargement des tâches...",
+    noTasks: "Aucune tâche trouvée. Ajoutez votre première tâche avec le bouton ci-dessus."
   },
   
   // Étiquettes du tableau de bord

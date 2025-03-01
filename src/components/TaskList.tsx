@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { PlusCircle, Trash2, Edit, Check, X, Calendar, User, ListTodo, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,12 @@ interface Task {
   parentId?: string;
 }
 
-const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
+interface TaskListProps {
+  filter: string | null;
+  onProgressUpdate?: (progress: number) => void;
+}
+
+const TaskList: React.FC<TaskListProps> = ({ filter, onProgressUpdate }) => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +48,25 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
   const [isStartDateOpen, setIsStartDateOpen] = useState(false);
   const [isDueDateOpen, setIsDueDateOpen] = useState(false);
+  const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
+
+  // Calculate global progress and send it to parent component
+  useEffect(() => {
+    if (tasks.length === 0) return;
+    
+    const totalTasks = tasks.length;
+    let progressSum = 0;
+    
+    tasks.forEach(task => {
+      progressSum += task.progress || 0;
+    });
+    
+    const calculatedProgress = Math.round(progressSum / totalTasks);
+    
+    if (onProgressUpdate) {
+      onProgressUpdate(calculatedProgress);
+    }
+  }, [tasks, onProgressUpdate]);
 
   useEffect(() => {
     const fetchTasksFromGoogleSheets = async () => {
@@ -110,11 +135,18 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
     return true;
   });
 
+  // Fix this method to properly handle new task creation and updates
   const handleSaveTask = () => {
-    if (!taskToEdit?.title) {
+    if (!taskToEdit) {
+      console.error("Task to edit is null");
+      return;
+    }
+    
+    if (!taskToEdit.title) {
       toast({
         variant: "destructive",
-        title: config.tasks.messages.titleRequired,
+        title: "Title is required",
+        description: "Please provide a title for the task",
       });
       return;
     }
@@ -126,7 +158,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
       );
       setTasks(updatedTasks);
       toast({
-        title: config.tasks.messages.taskUpdated,
+        title: "Task updated",
         description: taskToEdit.title,
       });
       setIsEditDialogOpen(false);
@@ -146,7 +178,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
       
       setTasks([...tasks, newTask]);
       toast({
-        title: config.tasks.messages.taskAdded,
+        title: "Task added",
         description: newTask.title,
       });
       setIsAddDialogOpen(false);
@@ -160,22 +192,44 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
   const handleDelete = () => {
     if (!taskToDelete) return;
     
+    // Save the task before deleting it
+    setLastDeletedTask(taskToDelete);
+    
     const updatedTasks = tasks.filter(task => task.id !== taskToDelete.id);
     setTasks(updatedTasks);
     
     toast({
-      title: config.tasks.messages.taskDeleted,
+      title: "Task deleted",
       description: taskToDelete.title,
+      action: (
+        <Button variant="outline" onClick={handleUndoDelete}>
+          Annuler
+        </Button>
+      ),
     });
     
     setIsDeleteDialogOpen(false);
     setTaskToDelete(null);
   };
 
+  // Add this method to restore the last deleted task
+  const handleUndoDelete = () => {
+    if (!lastDeletedTask) return;
+    
+    setTasks(prev => [...prev, lastDeletedTask]);
+    
+    toast({
+      title: "Task restored",
+      description: lastDeletedTask.title,
+    });
+    
+    setLastDeletedTask(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{config.tasks.title}</h2>
+        <h2 className="text-2xl font-bold">Tasks</h2>
         <Button onClick={() => {
           setTaskToEdit({
             id: '',
@@ -190,13 +244,13 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
           setIsAddDialogOpen(true);
         }}>
           <PlusCircle className="mr-2 h-4 w-4" />
-          {config.tasks.addButton}
+          Add Task
         </Button>
       </div>
       
       {loading && (
         <div className="py-8 text-center">
-          <p className="text-muted-foreground">{config.tasks.loading}</p>
+          <p className="text-muted-foreground">Loading tasks...</p>
         </div>
       )}
       
@@ -208,7 +262,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
       
       {!loading && !error && filteredTasks.length === 0 && (
         <div className="py-8 text-center">
-          <p className="text-muted-foreground">{config.tasks.noTasks}</p>
+          <p className="text-muted-foreground">No tasks found. Add your first task using the button above.</p>
         </div>
       )}
       
@@ -231,7 +285,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                     );
                     setTasks(updatedTasks);
                     toast({
-                      title: checked ? config.tasks.messages.taskCompleted : config.tasks.messages.taskUncompleted,
+                      title: checked ? "Task completed" : "Task marked as incomplete",
                       description: task.title,
                     });
                   }}
@@ -296,22 +350,22 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{config.tasks.addDialog.title}</DialogTitle>
+            <DialogTitle>Add Task</DialogTitle>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="title">{config.tasks.addDialog.titleField}</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
-                placeholder={config.tasks.addDialog.titlePlaceholder}
+                placeholder="Enter task title"
                 value={taskToEdit?.title || ''}
                 onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, title: e.target.value } : null)}
               />
             </div>
             
             <div className="grid gap-2">
-              <Label>{config.tasks.addDialog.startDate}</Label>
+              <Label>Start Date</Label>
               <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -319,7 +373,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                     className="justify-start text-left font-normal"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP', { locale: fr }) : config.tasks.addDialog.selectDate}
+                    {startDate ? format(startDate, 'PPP', { locale: fr }) : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -337,7 +391,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             </div>
             
             <div className="grid gap-2">
-              <Label>{config.tasks.addDialog.dueDate}</Label>
+              <Label>Due Date</Label>
               <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -345,7 +399,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                     className="justify-start text-left font-normal"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, 'PPP', { locale: fr }) : config.tasks.addDialog.selectDate}
+                    {dueDate ? format(dueDate, 'PPP', { locale: fr }) : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -363,10 +417,10 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="assignee">{config.tasks.addDialog.assignee}</Label>
+              <Label htmlFor="assignee">Assignee</Label>
               <Input
                 id="assignee"
-                placeholder={config.tasks.addDialog.assigneePlaceholder}
+                placeholder="Who is responsible for this task?"
                 value={taskToEdit?.assignee || ''}
                 onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, assignee: e.target.value } : null)}
               />
@@ -374,7 +428,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             
             <div className="grid gap-2">
               <div className="flex justify-between">
-                <Label htmlFor="progress">{config.tasks.addDialog.progress}</Label>
+                <Label htmlFor="progress">Progress</Label>
                 <span className="text-sm text-muted-foreground">{taskToEdit?.progress || 0}%</span>
               </div>
               <Slider
@@ -388,28 +442,28 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="status">{config.tasks.addDialog.status}</Label>
+              <Label htmlFor="status">Status</Label>
               <Select
                 value={taskToEdit?.status || 'not_started'}
                 onValueChange={(value) => setTaskToEdit(prev => prev ? { ...prev, status: value } : null)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={config.tasks.addDialog.statusPlaceholder} />
+                  <SelectValue placeholder="Select a status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="not_started">{config.tasks.statuses.not_started}</SelectItem>
-                  <SelectItem value="in_progress">{config.tasks.statuses.in_progress}</SelectItem>
-                  <SelectItem value="completed">{config.tasks.statuses.completed}</SelectItem>
-                  <SelectItem value="pending">{config.tasks.statuses.pending}</SelectItem>
+                  <SelectItem value="not_started">Not Started</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="category">{config.tasks.addDialog.category}</Label>
+              <Label htmlFor="category">Category</Label>
               <Input
                 id="category"
-                placeholder={config.tasks.addDialog.categoryPlaceholder}
+                placeholder="Category (e.g., Documentation, Planning)"
                 value={taskToEdit?.category || ''}
                 onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, category: e.target.value } : null)}
               />
@@ -424,10 +478,10 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                 setTaskToEdit(null);
               }}
             >
-              {config.tasks.addDialog.cancel}
+              Cancel
             </Button>
             <Button onClick={handleSaveTask}>
-              {config.tasks.addDialog.save}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -437,22 +491,22 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{config.tasks.editDialog.title}</DialogTitle>
+            <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="edit-title">{config.tasks.editDialog.titleField}</Label>
+              <Label htmlFor="edit-title">Title</Label>
               <Input
                 id="edit-title"
-                placeholder={config.tasks.editDialog.titlePlaceholder}
+                placeholder="Enter task title"
                 value={taskToEdit?.title || ''}
                 onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, title: e.target.value } : null)}
               />
             </div>
             
             <div className="grid gap-2">
-              <Label>{config.tasks.editDialog.startDate}</Label>
+              <Label>Start Date</Label>
               <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -460,7 +514,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                     className="justify-start text-left font-normal"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'PPP', { locale: fr }) : config.tasks.editDialog.selectDate}
+                    {startDate ? format(startDate, 'PPP', { locale: fr }) : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -478,7 +532,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             </div>
             
             <div className="grid gap-2">
-              <Label>{config.tasks.editDialog.dueDate}</Label>
+              <Label>Due Date</Label>
               <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -486,7 +540,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                     className="justify-start text-left font-normal"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, 'PPP', { locale: fr }) : config.tasks.editDialog.selectDate}
+                    {dueDate ? format(dueDate, 'PPP', { locale: fr }) : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -504,10 +558,10 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="edit-assignee">{config.tasks.editDialog.assignee}</Label>
+              <Label htmlFor="edit-assignee">Assignee</Label>
               <Input
                 id="edit-assignee"
-                placeholder={config.tasks.editDialog.assigneePlaceholder}
+                placeholder="Who is responsible for this task?"
                 value={taskToEdit?.assignee || ''}
                 onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, assignee: e.target.value } : null)}
               />
@@ -515,7 +569,7 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             
             <div className="grid gap-2">
               <div className="flex justify-between">
-                <Label htmlFor="edit-progress">{config.tasks.editDialog.progress}</Label>
+                <Label htmlFor="edit-progress">Progress</Label>
                 <span className="text-sm text-muted-foreground">{taskToEdit?.progress || 0}%</span>
               </div>
               <Slider
@@ -529,28 +583,28 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="edit-status">{config.tasks.editDialog.status}</Label>
+              <Label htmlFor="edit-status">Status</Label>
               <Select
                 value={taskToEdit?.status || 'not_started'}
                 onValueChange={(value) => setTaskToEdit(prev => prev ? { ...prev, status: value } : null)}
               >
                 <SelectTrigger id="edit-status">
-                  <SelectValue placeholder={config.tasks.editDialog.statusPlaceholder} />
+                  <SelectValue placeholder="Select a status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="not_started">{config.tasks.statuses.not_started}</SelectItem>
-                  <SelectItem value="in_progress">{config.tasks.statuses.in_progress}</SelectItem>
-                  <SelectItem value="completed">{config.tasks.statuses.completed}</SelectItem>
-                  <SelectItem value="pending">{config.tasks.statuses.pending}</SelectItem>
+                  <SelectItem value="not_started">Not Started</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="edit-category">{config.tasks.editDialog.category}</Label>
+              <Label htmlFor="edit-category">Category</Label>
               <Input
                 id="edit-category"
-                placeholder={config.tasks.editDialog.categoryPlaceholder}
+                placeholder="Category (e.g., Documentation, Planning)"
                 value={taskToEdit?.category || ''}
                 onChange={(e) => setTaskToEdit(prev => prev ? { ...prev, category: e.target.value } : null)}
               />
@@ -565,10 +619,10 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
                 setTaskToEdit(null);
               }}
             >
-              {config.tasks.editDialog.cancel}
+              Cancel
             </Button>
             <Button onClick={handleSaveTask}>
-              {config.tasks.editDialog.save}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -578,9 +632,9 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{config.tasks.deleteDialog.title}</DialogTitle>
+            <DialogTitle>Delete Task</DialogTitle>
             <DialogDescription>
-              {config.tasks.deleteDialog.description}
+              Are you sure you want to delete this task? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           
@@ -608,13 +662,13 @@ const TaskList: React.FC<{ filter: string | null }> = ({ filter }) => {
               variant="outline" 
               onClick={() => setIsDeleteDialogOpen(false)}
             >
-              {config.tasks.deleteDialog.cancel}
+              Cancel
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleDelete}
             >
-              {config.tasks.deleteDialog.confirm}
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

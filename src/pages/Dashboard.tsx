@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -18,6 +19,11 @@ const Dashboard: React.FC = () => {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
+
+  // Add a callback to receive progress updates from the TaskList component
+  const handleProgressUpdate = (progress: number) => {
+    setGlobalProgress(progress);
+  };
 
   const handleFilterClick = (status: string | null) => {
     setStatusFilter(prev => prev === status ? null : status);
@@ -40,7 +46,10 @@ const Dashboard: React.FC = () => {
         />
         
         <div className="mt-8">
-          <TaskList filter={statusFilter} />
+          <TaskList 
+            filter={statusFilter}
+            onProgressUpdate={handleProgressUpdate}
+          />
         </div>
       </main>
     </div>
