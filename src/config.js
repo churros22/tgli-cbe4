@@ -13,32 +13,32 @@ const config = {
   },
   
   // Application
-  appName: "CBE#4-Validation des Processus",
+  appName: "CBE#4-Validation des Procédés",
   
   // Configuration de l'API Google Sheets
   googleSheets: {
     // Configuration nécessaire pour l'API Google Sheets
-    apiKey: "", // Votre clé API Google (à remplir)
-    clientId: "", // Votre ID client OAuth (à remplir)
+    apiKey: "AIzaSyAjvmJPzM1-XaGEWS4LbOcUrxkBUyq-ClY", // Votre clé API Google (à remplir)
+    clientId: "981695330600-c32825dbucbqe5mat4udhe8sr6jfuegg.apps.googleusercontent.com", // Votre ID client OAuth (à remplir)
     scopes: "https://www.googleapis.com/auth/spreadsheets.readonly",
     discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     
     // Feuille des tâches (pour le tableau de bord)
     tasksSheet: {
-      spreadsheetId: "", // ID de votre Google Sheet (à remplir)
-      range: "Tasks!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
+      spreadsheetId: "1VjvPbYNSn1kUMsg7z3WrtdBC2EI4qtz8GkVxMKtLTT8", // ID de votre Google Sheet (à remplir)
+      range: "Tasks!A1:H100", // Plage à récupérer (ajustez selon vos besoins)
     },
     
     // Feuille des documents (pour la page Documents)
     documentsSheet: {
-      spreadsheetId: "", // Peut être le même que tasks ou différent
-      range: "Documents!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
+      spreadsheetId: "1VjvPbYNSn1kUMsg7z3WrtdBC2EI4qtz8GkVxMKtLTT8", // Peut être le même que tasks ou différent
+      range: "Documents!A1:H100", // Plage à récupérer (ajustez selon vos besoins)
     },
     
     // Feuille des tableaux (pour la page Tableaux)
     tableauxSheet: {
-      spreadsheetId: "", // Peut être le même que tasks ou différent
-      range: "Tableaux!A1:Z1000", // Plage à récupérer (ajustez selon vos besoins)
+      spreadsheetId: "1VjvPbYNSn1kUMsg7z3WrtdBC2EI4qtz8GkVxMKtLTT8", // Peut être le même que tasks ou différent
+      range: "Tableaux!A1:H100", // Plage à récupérer (ajustez selon vos besoins)
     },
   },
   
