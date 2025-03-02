@@ -13,7 +13,7 @@ const Logo: React.FC<LogoProps> = ({ className }) => {
         <img src="/logo.png" alt="Application Logo" className="w-full h-full object-contain" />
       </div>
       <div className="ml-2 text-xl font-bold text-primary">
-        CBE<span className="text-sm align-super">#4</span>
+        CBE<span className="text-sm align-super">#4</span>-Validation des Procédés
       </div>
     </div>
   );

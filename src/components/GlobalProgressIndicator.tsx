@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, CheckCircle, Clock, CircleDashed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import config from '@/config';
+import { useToast } from "@/hooks/use-toast";
 
 interface GlobalProgressIndicatorProps {
   progress?: number;
@@ -13,6 +14,7 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
 }) => {
   const [progress, setProgress] = useState(externalProgress || 0);
   const [loading, setLoading] = useState(externalProgress === undefined);
+  const { toast } = useToast();
 
   useEffect(() => {
     // If progress is provided externally, use it
@@ -35,6 +37,12 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
         const response = await fetch(url);
         
         if (!response.ok) {
+          if (response.status === 429) {
+            console.warn('Rate limit exceeded when fetching tasks. Using cached progress.');
+            // Don't change the progress, just stop loading
+            setLoading(false);
+            return;
+          }
           throw new Error('Failed to fetch tasks from Google Sheets');
         }
         
@@ -44,10 +52,21 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
         if (data && data.values && data.values.length > 0) {
           // Skip the header row (first row)
           const rows = data.values.slice(1);
+          
+          // Filter to only include leaf tasks (tasks that don't have subtasks)
+          const allTasks = rows.map((row: string[]) => ({
+            id: row[0] || '',
+            status: row[3] || ''
+          }));
+          
+          const leafTasks = allTasks.filter(task => 
+            !allTasks.some(t => t.id !== task.id && t.id.startsWith(task.id + '.'))
+          );
+          
           // Calculate overall progress based on completed tasks
-          const totalTasks = rows.length;
-          const completedTasks = rows.filter((row: string[]) => row[3] === 'completed').length;
-          const inProgressTasks = rows.filter((row: string[]) => row[3] === 'in_progress').length;
+          const totalTasks = leafTasks.length;
+          const completedTasks = leafTasks.filter(task => task.status === 'completed').length;
+          const inProgressTasks = leafTasks.filter(task => task.status === 'in_progress').length;
           
           // Calculate a weighted progress: completed tasks count as 100%, in progress as 50%
           const progressValue = ((completedTasks * 100) + (inProgressTasks * 50)) / totalTasks;

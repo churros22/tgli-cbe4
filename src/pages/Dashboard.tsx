@@ -11,16 +11,19 @@ import GlobalProgressIndicator from '@/components/GlobalProgressIndicator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import config from '@/config';
 
 const Dashboard: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [globalProgress, setGlobalProgress] = useState<number | undefined>(undefined);
   const [nearestDeadline, setNearestDeadline] = useState<{task: any, timeRemaining: string} | null>(null);
   const [priorityTasks, setPriorityTasks] = useState<any[]>([]);
   const [view, setView] = useState<'list' | 'kanban' | 'calendar'>('list');
+  const [loadError, setLoadError] = useState<boolean>(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -44,6 +47,13 @@ const Dashboard: React.FC = () => {
 
   // Add a callback to receive task data for deadline calculations
   const handleTasksLoaded = (tasks: any[]) => {
+    if (!tasks || tasks.length === 0) {
+      setLoadError(true);
+      return;
+    }
+    
+    setLoadError(false);
+    
     // Find nearest deadline
     const now = new Date();
     let nearest = null;
@@ -54,10 +64,13 @@ const Dashboard: React.FC = () => {
     const urgentTasks = [];
 
     // Only consider leaf tasks (not parent tasks/phases)
-    const leafTasks = tasks.filter(task => !task.id.includes('.') || !tasks.some(t => t.id.startsWith(task.id + '.')));
+    const leafTasks = tasks.filter(task => 
+      !task.id.includes('.') || 
+      !tasks.some(t => t.id.startsWith(task.id + '.'))
+    );
 
     for (const task of leafTasks) {
-      if (task.dueDate && !task.completed) {
+      if (task.dueDate && !task.completed && task.status !== 'completed') {
         try {
           const dueDate = parseISO(task.dueDate);
           
@@ -124,6 +137,15 @@ const Dashboard: React.FC = () => {
     setView(newView);
   };
 
+  const handleTaskError = () => {
+    setLoadError(true);
+    toast({
+      title: "Erreur de chargement",
+      description: "Impossible de charger les tâches. Veuillez réessayer plus tard.",
+      variant: "destructive"
+    });
+  };
+
   if (!isAuthenticated) return null;
 
   return (
@@ -143,13 +165,13 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <AlarmClock className="h-10 w-10 text-orange-500" />
                   <div>
-                    <h3 className="text-xl font-medium">Next Deadline</h3>
+                    <h3 className="text-xl font-medium">Prochaine Échéance</h3>
                     <p className="text-muted-foreground">{nearestDeadline.task.title}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-orange-500">{nearestDeadline.timeRemaining}</div>
-                  <p className="text-sm text-muted-foreground">remaining</p>
+                  <p className="text-sm text-muted-foreground">restant</p>
                 </div>
               </div>
             </CardContent>
@@ -162,7 +184,7 @@ const Dashboard: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-orange-500" />
-                Current Priorities
+                Priorités Actuelles
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -175,13 +197,13 @@ const Dashboard: React.FC = () => {
                     <div>
                       <h4 className="font-medium">{task.title}</h4>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                        {task.assignee && <span>Assigned to: {task.assignee}</span>}
+                        {task.assignee && <span>Assigné à: {task.assignee}</span>}
                         <Badge variant={
                           task.timeRemaining.includes('h') && !task.timeRemaining.includes('d') 
                             ? "destructive" 
                             : "outline"
                         }>
-                          Due in {task.timeRemaining}
+                          Échéance dans {task.timeRemaining}
                         </Badge>
                       </div>
                     </div>
@@ -189,10 +211,10 @@ const Dashboard: React.FC = () => {
                       size="sm" 
                       onClick={() => {
                         // This would ideally open the task editor
-                        console.log("Edit task", task.id);
+                        console.log("View task", task.id);
                       }}
                     >
-                      View
+                      Voir
                     </Button>
                   </div>
                 ))}
@@ -208,7 +230,7 @@ const Dashboard: React.FC = () => {
             size="sm"
             onClick={() => handleViewChange('list')}
           >
-            List
+            Liste
           </Button>
           <Button 
             variant={view === 'kanban' ? "default" : "outline"} 
@@ -222,7 +244,7 @@ const Dashboard: React.FC = () => {
             size="sm"
             onClick={() => handleViewChange('calendar')}
           >
-            Calendar
+            Calendrier
           </Button>
         </div>
 
@@ -236,6 +258,7 @@ const Dashboard: React.FC = () => {
             filter={statusFilter}
             onProgressUpdate={handleProgressUpdate}
             onTasksLoaded={handleTasksLoaded}
+            onError={handleTaskError}
             view={view}
           />
         </div>
