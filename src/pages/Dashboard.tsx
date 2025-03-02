@@ -29,6 +29,12 @@ const Dashboard: React.FC = () => {
     
     // Set the document title with the app name from config
     document.title = config.appName;
+    
+    // Set favicon to logo.png
+    const link = document.querySelector("link[rel='icon']") || document.createElement('link');
+    link.setAttribute('rel', 'icon');
+    link.setAttribute('href', '/logo.png');
+    document.head.appendChild(link);
   }, [isAuthenticated, navigate]);
 
   // Add a callback to receive progress updates from the TaskList component
@@ -47,7 +53,10 @@ const Dashboard: React.FC = () => {
     // Find priority tasks (due within 72 hours)
     const urgentTasks = [];
 
-    for (const task of tasks) {
+    // Only consider leaf tasks (not parent tasks/phases)
+    const leafTasks = tasks.filter(task => !task.id.includes('.') || !tasks.some(t => t.id.startsWith(task.id + '.')));
+
+    for (const task of leafTasks) {
       if (task.dueDate && !task.completed) {
         try {
           const dueDate = parseISO(task.dueDate);

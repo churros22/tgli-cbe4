@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Search, FileText, FileCode, FileSpreadsheet, File, Download, AlertTriangle } from 'lucide-react';
+import { ExternalLink, Search, FileText, FileCode, FileSpreadsheet, File, Download, AlertTriangle, FilePdf } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -141,15 +141,15 @@ const DocumentList: React.FC = () => {
   const getDocumentIcon = (type: Document['type']) => {
     switch (type) {
       case 'doc':
-        return <FileText className="h-8 w-8 text-blue-500" />;
+        return <FileText className="h-10 w-10 text-blue-500" />;
       case 'pdf':
-        return <File className="h-8 w-8 text-red-500" />;
+        return <FilePdf className="h-10 w-10 text-red-500" />;
       case 'spreadsheet':
-        return <FileSpreadsheet className="h-8 w-8 text-green-500" />;
+        return <FileSpreadsheet className="h-10 w-10 text-green-500" />;
       case 'code':
-        return <FileCode className="h-8 w-8 text-purple-500" />;
+        return <FileCode className="h-10 w-10 text-purple-500" />;
       default:
-        return <File className="h-8 w-8 text-gray-500" />;
+        return <File className="h-10 w-10 text-gray-500" />;
     }
   };
 
@@ -273,9 +273,9 @@ const DocumentList: React.FC = () => {
                             onClick={() => window.open(document.url, '_blank')}
                           >
                             <div className="p-4">
-                              <div className="flex items-start space-x-4">
+                              <div className="flex flex-col items-center text-center">
                                 {getDocumentIcon(document.type)}
-                                <div className="flex-1">
+                                <div className="mt-3">
                                   <h4 className="font-medium group-hover:text-primary transition-colors duration-300 line-clamp-2">
                                     {document.title}
                                   </h4>
@@ -284,19 +284,21 @@ const DocumentList: React.FC = () => {
                                       {document.description}
                                     </p>
                                   )}
-                                  <div className="flex items-center justify-between mt-2">
+                                  <div className="flex items-center justify-center mt-2">
                                     {document.date && (
                                       <p className="text-xs text-muted-foreground">
                                         {formatDate(document.date)}
                                       </p>
                                     )}
-                                    <ExternalLink 
-                                      size={16} 
-                                      className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                                    />
                                   </div>
                                 </div>
                               </div>
+                            </div>
+                            <div className="w-full h-12 bg-muted/30 flex items-center justify-center border-t">
+                              <Button variant="ghost" size="sm" className="text-xs gap-1">
+                                <ExternalLink size={14} />
+                                Open Document
+                              </Button>
                             </div>
                           </Card>
                         ))}

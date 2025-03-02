@@ -58,23 +58,29 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
           // Skip the header row (first row)
           const rows = data.values.slice(1);
           
-          const tasks: Task[] = rows.map((row: string[]) => ({
+          const allTasks: Task[] = rows.map((row: string[]) => ({
             id: row[0] || '',
             title: row[1] || '',
             status: row[3] || '',
             dueDate: row[4] || '',
           }));
           
-          // Calculate statistics
-          const totalTasks = tasks.length;
-          const completedTasks = tasks.filter(task => task.status === 'completed').length;
+          // Filter to only include leaf tasks (tasks that don't have subtasks)
+          const leafTasks = allTasks.filter(task => 
+            // A leaf task has no child tasks
+            !allTasks.some(t => t.id !== task.id && t.id.startsWith(task.id + '.'))
+          );
+          
+          // Calculate statistics based on leaf tasks only
+          const totalTasks = leafTasks.length;
+          const completedTasks = leafTasks.filter(task => task.status === 'completed').length;
           const remainingTasks = totalTasks - completedTasks;
           
           // Calculate overdue tasks
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           
-          const overdueTasks = tasks.filter(task => {
+          const overdueTasks = leafTasks.filter(task => {
             if (task.status === 'completed') return false;
             if (!task.dueDate) return false;
             
@@ -87,7 +93,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
           }).length;
           
           // Find next deadline
-          const incompleteTasks = tasks.filter(task => 
+          const incompleteTasks = leafTasks.filter(task => 
             task.status !== 'completed' && 
             task.dueDate && 
             !isNaN(new Date(task.dueDate).getTime())
@@ -149,6 +155,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
     };
 
     fetchTasksFromGoogleSheets();
+    
+    // Set up polling for real-time updates
+    const interval = setInterval(fetchTasksFromGoogleSheets, 60000); // Refresh every minute
+    
+    return () => clearInterval(interval);
   }, []);
 
   return (
