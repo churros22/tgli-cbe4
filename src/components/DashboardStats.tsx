@@ -34,6 +34,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
     nextDeadline: '',
   });
   const [loading, setLoading] = useState<boolean>(true);
+  const [retryCount, setRetryCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchTasksFromGoogleSheets = async () => {
@@ -48,13 +49,25 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
         const response = await fetch(url);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch data from Google Sheets');
+          if (response.status === 429 && retryCount < 3) {
+            // If rate limited, try again with exponential backoff
+            console.warn('Limite de requêtes atteinte. Nouvelle tentative dans quelques instants...');
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => {
+              fetchTasksFromGoogleSheets();
+            }, Math.pow(2, retryCount) * 1000);
+            return;
+          }
+          throw new Error('Échec de récupération des données depuis Google Sheets');
         }
         
         const data = await response.json();
         
         // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
+          // Reset retry count on success
+          setRetryCount(0);
+          
           // Skip the header row (first row)
           const rows = data.values.slice(1);
           
@@ -140,7 +153,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
           });
         }
       } catch (error) {
-        console.error('Error fetching data from Google Sheets:', error);
+        console.error('Erreur lors de la récupération des données depuis Google Sheets:', error);
         // Fallback to mock data in case of error
         setStats({
           totalTasks: 0,
@@ -160,7 +173,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ onFilterClick, activeFi
     const interval = setInterval(fetchTasksFromGoogleSheets, 60000); // Refresh every minute
     
     return () => clearInterval(interval);
-  }, []);
+  }, [retryCount]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">

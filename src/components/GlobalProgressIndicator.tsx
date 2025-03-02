@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, CheckCircle, Clock, CircleDashed } from 'lucide-react';
+import { TrendingUp, CheckCircle, Clock, CircleDashed, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import config from '@/config';
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
   const [progress, setProgress] = useState(externalProgress || 0);
   const [loading, setLoading] = useState(externalProgress === undefined);
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
+  const [error, setError] = useState<boolean>(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,7 +32,7 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
         // Check if we should throttle requests (no more than once per minute)
         const now = Date.now();
         if (lastFetchTime && now - lastFetchTime < 60000) {
-          console.log('Throttling progress indicator API request');
+          console.log('Limitation des requêtes API pour l\'indicateur de progression');
           return;
         }
 
@@ -48,12 +49,12 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
         
         if (!response.ok) {
           if (response.status === 429) {
-            console.warn('Rate limit exceeded when fetching tasks. Using cached progress.');
+            console.warn('Limite de requêtes atteinte lors de la récupération des tâches. Utilisation de la progression en cache.');
             // Don't change the progress, just stop loading
             setLoading(false);
             return;
           }
-          throw new Error('Failed to fetch tasks from Google Sheets');
+          throw new Error('Échec de la récupération des tâches depuis Google Sheets');
         }
         
         const data = await response.json();
@@ -84,14 +85,23 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
             : 0;
           
           setProgress(Math.round(progressValue));
+          setError(false);
         } else {
           // Default progress if no data
           setProgress(0);
+          throw new Error('Pas de données de tâches disponibles');
         }
       } catch (error) {
-        console.error('Error calculating progress:', error);
-        // Fallback to a default value
-        setProgress(0);
+        console.error('Erreur lors du calcul de la progression:', error);
+        setError(true);
+        // Fallback to a default value but don't show toast to avoid too many notifications
+        if (!lastFetchTime) {
+          toast({
+            title: "Problème de chargement",
+            description: "Impossible de charger les tâches. La progression peut être inexacte.",
+            variant: "destructive"
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -103,10 +113,11 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
     const intervalId = setInterval(calculateProgressFromTasks, 120000);
     
     return () => clearInterval(intervalId);
-  }, [externalProgress, lastFetchTime]);
+  }, [externalProgress, lastFetchTime, toast]);
 
   // Calculate which icon to show based on progress
   const getProgressIcon = () => {
+    if (error) return <AlertTriangle className="h-6 w-6 text-destructive" />;
     if (progress >= 75) return <CheckCircle className="h-6 w-6 text-green-500" />;
     if (progress >= 50) return <TrendingUp className="h-6 w-6 text-blue-500" />;
     if (progress >= 25) return <Clock className="h-6 w-6 text-orange-500" />;
@@ -126,14 +137,19 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
           </div>
         </div>
         <div className="text-2xl font-semibold">
-          {loading ? '...' : `${progress}%`}
+          {loading ? '...' : (error ? 'Erreur' : `${progress}%`)}
         </div>
       </div>
       
       {/* Progress bar */}
       <div className="relative h-3 bg-secondary rounded-full overflow-hidden">
         <div 
-          className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-400 to-green-400 rounded-full transition-all duration-700 ease-in-out" 
+          className={cn(
+            "absolute top-0 left-0 h-full rounded-full transition-all duration-700 ease-in-out",
+            error 
+              ? "bg-destructive/50 animate-pulse" 
+              : "bg-gradient-to-r from-blue-400 to-green-400"
+          )}
           style={{
             width: `${loading ? 0 : progress}%`,
             opacity: loading ? 0.5 : 1

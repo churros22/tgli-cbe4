@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { differenceInDays, differenceInHours, differenceInMinutes, parseISO, isValid } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { AlarmClock, AlertTriangle } from 'lucide-react';
 import Navigation from '@/components/Navigation';
 import TaskList from '@/components/TaskList';
@@ -91,12 +92,12 @@ const Dashboard: React.FC = () => {
                 ...task,
                 timeRemaining: diffHours <= 24 
                   ? `${differenceInHours(dueDate, now)}h` 
-                  : `${diffDays}d ${differenceInHours(dueDate, now) % 24}h`
+                  : `${diffDays}j ${differenceInHours(dueDate, now) % 24}h`
               });
             }
           }
         } catch (e) {
-          console.error("Error parsing date", e);
+          console.error("Erreur d'analyse de date", e);
         }
       }
     }
@@ -108,7 +109,7 @@ const Dashboard: React.FC = () => {
       const minutes = differenceInMinutes(nearestDate, now) % 60;
       
       const timeRemaining = days > 0 
-        ? `${days}d ${hours}h ${minutes}m` 
+        ? `${days}j ${hours}h ${minutes}m` 
         : `${hours}h ${minutes}m`;
       
       setNearestDeadline({
@@ -200,7 +201,7 @@ const Dashboard: React.FC = () => {
                       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                         {task.assignee && <span>Assigné à: {task.assignee}</span>}
                         <Badge variant={
-                          task.timeRemaining.includes('h') && !task.timeRemaining.includes('d') 
+                          task.timeRemaining.includes('h') && !task.timeRemaining.includes('j') 
                             ? "destructive" 
                             : "outline"
                         }>
@@ -212,7 +213,7 @@ const Dashboard: React.FC = () => {
                       size="sm" 
                       onClick={() => {
                         // This would ideally open the task editor
-                        console.log("View task", task.id);
+                        console.log("Voir la tâche", task.id);
                       }}
                     >
                       Voir
