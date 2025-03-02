@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search } from 'lucide-react';
+import { Search, FileDigit, FileSpreadsheet, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import config from '@/config';
 
 interface DiagramProps {
@@ -51,6 +52,13 @@ const DiagramList = () => {
     }
   };
 
+  // Get icon based on filename pattern
+  const getDiagramIcon = (fileName: string) => {
+    if (fileName.includes('flux')) return <FileSpreadsheet className="h-5 w-5 text-blue-500" />;
+    if (fileName.includes('spc')) return <Activity className="h-5 w-5 text-green-500" />;
+    return <FileDigit className="h-5 w-5 text-amber-500" />;
+  };
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex flex-col sm:flex-row justify-between mb-6 gap-4">
@@ -67,48 +75,59 @@ const DiagramList = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-1">
-          <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory}>
-            <TabsList className="mb-4 flex flex-wrap">
-              <TabsTrigger value="all">Tous</TabsTrigger>
-              {config.diagrammes.categories.map((category) => (
-                <TabsTrigger key={category.name} value={category.name}>
-                  {category.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <TabsContent value={selectedCategory} className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3">
-                {getDiagramsToDisplay().map((diagram, index) => (
-                  <Card 
-                    key={index}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
-                      selectedDiagram?.fileName === diagram.fileName 
-                        ? 'border-primary' 
-                        : 'hover:border-primary/50'
-                    }`}
-                    onClick={() => handleDiagramClick(diagram)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center">
-                        <div className="flex-1">
-                          <h3 className="font-medium">{diagram.title}</h3>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+          <Card className="border-primary/20 h-full">
+            <CardHeader className="pb-3">
+              <CardTitle>Diagrammes</CardTitle>
+              <CardDescription>
+                Sélectionnez une catégorie ci-dessous
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Tabs defaultValue="all" value={selectedCategory} onValueChange={setSelectedCategory} className="px-4">
+                <TabsList className="mb-4 w-full flex flex-wrap justify-start">
+                  <TabsTrigger value="all">Tous</TabsTrigger>
+                  {config.diagrammes.categories.map((category) => (
+                    <TabsTrigger key={category.name} value={category.name}>
+                      {category.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
               
-              {getDiagramsToDisplay().length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    Aucun diagramme trouvé pour cette recherche.
-                  </p>
+              <ScrollArea className="h-[calc(100vh-380px)] px-4 pb-4">
+                <div className="grid grid-cols-1 gap-3">
+                  {getDiagramsToDisplay().map((diagram, index) => (
+                    <Card 
+                      key={index}
+                      className={`cursor-pointer transition-all hover:shadow-md ${
+                        selectedDiagram?.fileName === diagram.fileName 
+                          ? 'border-primary bg-primary/5' 
+                          : 'hover:border-primary/50'
+                      }`}
+                      onClick={() => handleDiagramClick(diagram)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          {getDiagramIcon(diagram.fileName)}
+                          <div className="flex-1 overflow-hidden">
+                            <h3 className="font-medium text-sm truncate">{diagram.title}</h3>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {getDiagramsToDisplay().length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">
+                        Aucun diagramme trouvé pour cette recherche.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </TabsContent>
-          </Tabs>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="lg:col-span-2">
@@ -116,10 +135,13 @@ const DiagramList = () => {
             {selectedDiagram ? (
               <>
                 <CardHeader className="pb-2">
-                  <CardTitle>{selectedDiagram.title}</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    {getDiagramIcon(selectedDiagram.fileName)}
+                    {selectedDiagram.title}
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="flex-grow relative">
-                  <div className="absolute inset-0 overflow-hidden rounded-b-lg">
+                <CardContent className="flex-grow relative p-0">
+                  <div className="absolute inset-0 overflow-hidden">
                     <iframe 
                       src={selectedDiagram.fileName}
                       className="w-full h-full border-0"
@@ -129,11 +151,12 @@ const DiagramList = () => {
                 </CardContent>
               </>
             ) : (
-              <div className="flex items-center justify-center h-full min-h-[400px]">
+              <div className="flex items-center justify-center h-full min-h-[500px]">
                 <div className="text-center p-6">
+                  <Activity className="h-16 w-16 text-muted-foreground/40 mx-auto mb-4" />
                   <h3 className="text-xl font-medium mb-2">Sélectionnez un diagramme</h3>
-                  <p className="text-muted-foreground">
-                    Choisissez un diagramme dans la liste pour le visualiser ici.
+                  <p className="text-muted-foreground max-w-md">
+                    Choisissez un diagramme dans la liste pour le visualiser ici. Vous pouvez rechercher ou filtrer par catégorie.
                   </p>
                 </div>
               </div>

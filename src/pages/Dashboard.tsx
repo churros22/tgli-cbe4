@@ -137,6 +137,7 @@ const Dashboard: React.FC = () => {
     setView(newView);
   };
 
+  // Handle task loading errors
   const handleTaskError = () => {
     setLoadError(true);
     toast({

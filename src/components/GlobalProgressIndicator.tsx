@@ -14,6 +14,7 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
 }) => {
   const [progress, setProgress] = useState(externalProgress || 0);
   const [loading, setLoading] = useState(externalProgress === undefined);
+  const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -27,7 +28,16 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
     // Otherwise, calculate it from tasks in Google Sheets
     const calculateProgressFromTasks = async () => {
       try {
+        // Check if we should throttle requests (no more than once per minute)
+        const now = Date.now();
+        if (lastFetchTime && now - lastFetchTime < 60000) {
+          console.log('Throttling progress indicator API request');
+          return;
+        }
+
         setLoading(true);
+        setLastFetchTime(now);
+
         // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.tasksSheet.spreadsheetId;
@@ -69,7 +79,10 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
           const inProgressTasks = leafTasks.filter(task => task.status === 'in_progress').length;
           
           // Calculate a weighted progress: completed tasks count as 100%, in progress as 50%
-          const progressValue = ((completedTasks * 100) + (inProgressTasks * 50)) / totalTasks;
+          const progressValue = totalTasks > 0 
+            ? ((completedTasks * 100) + (inProgressTasks * 50)) / totalTasks
+            : 0;
+          
           setProgress(Math.round(progressValue));
         } else {
           // Default progress if no data
@@ -85,7 +98,12 @@ const GlobalProgressIndicator: React.FC<GlobalProgressIndicatorProps> = ({
     };
 
     calculateProgressFromTasks();
-  }, [externalProgress]);
+    
+    // Set up interval to refresh the progress every 2 minutes
+    const intervalId = setInterval(calculateProgressFromTasks, 120000);
+    
+    return () => clearInterval(intervalId);
+  }, [externalProgress, lastFetchTime]);
 
   // Calculate which icon to show based on progress
   const getProgressIcon = () => {

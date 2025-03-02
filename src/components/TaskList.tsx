@@ -38,13 +38,15 @@ interface TaskListProps {
   onProgressUpdate?: (progress: number) => void;
   onTasksLoaded?: (tasks: Task[]) => void;
   view?: 'list' | 'kanban' | 'calendar';
+  onError?: () => void; // Add the missing onError prop
 }
 
 const TaskList: React.FC<TaskListProps> = ({ 
   filter, 
   onProgressUpdate, 
   onTasksLoaded,
-  view = 'list'
+  view = 'list',
+  onError
 }) => {
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -216,59 +218,80 @@ const TaskList: React.FC<TaskListProps> = ({
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch tasks from Google Sheets');
+        if (response.status === 429) {
+          toast({
+            title: "Rate limit exceeded",
+            description: "Too many requests to Google Sheets API. Please try again later.",
+            variant: "destructive"
+          });
+          
+          console.warn('Rate limit exceeded when fetching tasks');
+          setError('Rate limit exceeded. Using cached data if available.');
+          
+          // Call onError if provided
+          if (onError) onError();
+          
+          // Don't set loading to false yet, as we might have cached data
+        } else {
+          throw new Error(`Failed to fetch tasks from Google Sheets: ${response.status}`);
+        }
       }
       
-      const data = await response.json();
-      
-      // Process the data from Google Sheets
-      if (data && data.values && data.values.length > 0) {
-        // Extract headers from the first row
-        const headers = data.values[0];
+      if (response.ok) {
+        const data = await response.json();
         
-        // Transform the raw data into Task objects
-        const fetchedTasks: Task[] = data.values.slice(1).map((row: string[]) => {
-          const task: Task = {
-            id: row[0] || String(Math.random()),
-            title: row[1] || 'Untitled Task',
-            completed: row[3] === 'completed',
-            startDate: row[4] ? row[4] : format(new Date(), 'yyyy-MM-dd'),
-            dueDate: row[5] || undefined,
-            assignee: row[6] || undefined,
-            progress: row[3] === 'completed' ? 100 : row[3] === 'in_progress' ? 50 : 0,
-            status: row[3] || 'not_started',
-            category: row[7] || undefined,
-            parentId: row[0].includes('.') ? row[0].split('.')[0] : undefined
-          };
+        // Process the data from Google Sheets
+        if (data && data.values && data.values.length > 0) {
+          // Extract headers from the first row
+          const headers = data.values[0];
           
-          return task;
-        });
-        
-        setTasks(fetchedTasks);
-        
-        // Build hierarchical structure
-        const hierarchical = buildHierarchy(fetchedTasks);
-        setHierarchicalTasks(hierarchical);
-        
-        // Build Kanban columns
-        setKanbanColumns(buildKanbanColumns(hierarchical));
-        
-        // Call onTasksLoaded callback if provided
-        if (onTasksLoaded) {
-          onTasksLoaded(fetchedTasks);
-        }
+          // Transform the raw data into Task objects
+          const fetchedTasks: Task[] = data.values.slice(1).map((row: string[]) => {
+            const task: Task = {
+              id: row[0] || String(Math.random()),
+              title: row[1] || 'Untitled Task',
+              completed: row[3] === 'completed',
+              startDate: row[4] ? row[4] : format(new Date(), 'yyyy-MM-dd'),
+              dueDate: row[5] || undefined,
+              assignee: row[6] || undefined,
+              progress: row[3] === 'completed' ? 100 : row[3] === 'in_progress' ? 50 : 0,
+              status: row[3] || 'not_started',
+              category: row[7] || undefined,
+              parentId: row[0].includes('.') ? row[0].split('.')[0] : undefined
+            };
+            
+            return task;
+          });
+          
+          setTasks(fetchedTasks);
+          
+          // Build hierarchical structure
+          const hierarchical = buildHierarchy(fetchedTasks);
+          setHierarchicalTasks(hierarchical);
+          
+          // Build Kanban columns
+          setKanbanColumns(buildKanbanColumns(hierarchical));
+          
+          // Call onTasksLoaded callback if provided
+          if (onTasksLoaded) {
+            onTasksLoaded(fetchedTasks);
+          }
 
-        setIsGoogleSheetsInitialized(true);
-      } else {
-        // If no data is returned, set an empty array
-        setTasks([]);
-        setHierarchicalTasks([]);
-        setKanbanColumns({
-          not_started: [],
-          in_progress: [],
-          completed: [],
-          pending: []
-        });
+          setIsGoogleSheetsInitialized(true);
+        } else {
+          // If no data is returned, set an empty array
+          setTasks([]);
+          setHierarchicalTasks([]);
+          setKanbanColumns({
+            not_started: [],
+            in_progress: [],
+            completed: [],
+            pending: []
+          });
+          
+          // Call onError if provided
+          if (onError) onError();
+        }
       }
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -276,10 +299,19 @@ const TaskList: React.FC<TaskListProps> = ({
       // Fallback to empty tasks array
       setTasks([]);
       setHierarchicalTasks([]);
+      setKanbanColumns({
+        not_started: [],
+        in_progress: [],
+        completed: [],
+        pending: []
+      });
+      
+      // Call onError if provided
+      if (onError) onError();
     } finally {
       setLoading(false);
     }
-  }, [buildHierarchy, buildKanbanColumns, onTasksLoaded]);
+  }, [buildHierarchy, buildKanbanColumns, onTasksLoaded, onError, toast]);
   
   // Update Google Sheets with changes
   const updateGoogleSheets = async (updatedTasks: Task[]) => {
