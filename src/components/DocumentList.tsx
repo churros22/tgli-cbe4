@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { ExternalLink, Search, FileText, FileCode, FileSpreadsheet, File, Download, AlertTriangle, FilePdf } from 'lucide-react';
+import { ExternalLink, Search, FileText, FileCode, FileSpreadsheet, File, Download, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -37,10 +36,9 @@ const DocumentList: React.FC = () => {
     const fetchDocumentsFromGoogleSheets = async () => {
       try {
         setLoading(true);
-        // Construct the Google Sheets API URL with your API key and spreadsheet ID
         const apiKey = config.googleSheets.apiKey;
         const sheetId = config.googleSheets.documentsSheet.spreadsheetId;
-        const range = 'Documents!A2:G100'; // Adjusted to include description field
+        const range = 'Documents!A2:G100';
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
 
         const response = await fetch(url);
@@ -51,9 +49,7 @@ const DocumentList: React.FC = () => {
         
         const data = await response.json();
         
-        // Process the data from Google Sheets
         if (data && data.values && data.values.length > 0) {
-          // Transform the raw data into Document objects
           const fetchedDocuments: Document[] = data.values.map((row: string[]) => ({
             id: row[0] || String(Math.random()),
             title: row[1] || 'Untitled Document',
@@ -64,7 +60,6 @@ const DocumentList: React.FC = () => {
             description: row[6] || undefined
           }));
           
-          // Group documents by category
           const documentsByCategory: Record<string, Document[]> = {};
           
           fetchedDocuments.forEach(doc => {
@@ -74,7 +69,6 @@ const DocumentList: React.FC = () => {
             documentsByCategory[doc.category].push(doc);
           });
           
-          // Convert to categories array
           const fetchedCategories: Category[] = Object.keys(documentsByCategory).map(name => ({
             name,
             documents: documentsByCategory[name]
@@ -82,13 +76,11 @@ const DocumentList: React.FC = () => {
           
           setCategories(fetchedCategories);
         } else {
-          // If no data is returned, set an empty array
           setCategories([]);
         }
       } catch (error) {
         console.error('Error fetching documents:', error);
         setError('Failed to load documents. Please try again later.');
-        // Fallback to empty categories array
         setCategories([]);
       } finally {
         setLoading(false);
@@ -98,7 +90,6 @@ const DocumentList: React.FC = () => {
     fetchDocumentsFromGoogleSheets();
   }, []);
 
-  // Determine document type based on URL and explicit type
   const determineDocumentType = (url: string, explicitType: string): Document['type'] => {
     if (explicitType && ['doc', 'pdf', 'spreadsheet', 'code'].includes(explicitType)) {
       return explicitType as Document['type'];
@@ -123,7 +114,6 @@ const DocumentList: React.FC = () => {
     return 'other';
   };
 
-  // Filter documents based on search query and active tab
   const filteredCategories = categories
     .map(category => ({
       ...category,
@@ -137,13 +127,12 @@ const DocumentList: React.FC = () => {
     }))
     .filter(category => category.documents.length > 0);
 
-  // Helper function to get the appropriate icon based on document type
   const getDocumentIcon = (type: Document['type']) => {
     switch (type) {
       case 'doc':
         return <FileText className="h-10 w-10 text-blue-500" />;
       case 'pdf':
-        return <FilePdf className="h-10 w-10 text-red-500" />;
+        return <FileText className="h-10 w-10 text-red-500" />;
       case 'spreadsheet':
         return <FileSpreadsheet className="h-10 w-10 text-green-500" />;
       case 'code':
@@ -153,7 +142,6 @@ const DocumentList: React.FC = () => {
     }
   };
 
-  // Helper function to format date
   const formatDate = (dateString: string) => {
     try {
       const date = parseISO(dateString);
@@ -164,7 +152,6 @@ const DocumentList: React.FC = () => {
     }
   };
 
-  // Count documents by type for the tabs
   const getCounts = () => {
     const counts = {
       all: 0,
